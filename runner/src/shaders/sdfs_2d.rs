@@ -9,11 +9,12 @@ use crate::{
 use bytemuck::Zeroable;
 use egui::{Context, CursorIcon};
 use glam::{vec2, UVec2, Vec2};
-use sdf::grid::SdfGrid;
+use sdf::grid::{SdfGrid, NUM_X, NUM_Y, BASE};
 use shared::push_constants::sdfs_2d::{ShaderConstants, MAX_NUM_POINTS};
 use shared::sdf_2d as sdf;
 use shared::{fast_optional::Optional_f32, from_pixels};
 use std::{
+    fs,
     f32::consts::PI,
     time::{Duration, Instant},
 };
@@ -23,6 +24,10 @@ use winit::{
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,
 };
+use steel::steel_vm::engine::Engine;
+use steel_derive::Steel;
+use steel::steel_vm::register_fn::RegisterFn;
+use steel::SteelVal;
 
 #[derive(strum::EnumIter, strum::Display, PartialEq, Copy, Clone)]
 pub enum Shape {
@@ -201,10 +206,72 @@ pub struct Controller {
     grid: SdfGrid,
     grid_needs_updating: bool,
     smooth: bool,
+    vm: Engine
+}
+
+fn scm_length(p: (f32, f32)) -> f32 {
+    vec2(p.0, p.1).length()
+}
+
+fn grid_to_point(i: usize, j: usize) -> (f32, f32) {
+    const HALF_CELL_SIZE: f32 = 0.5 / BASE as f32;
+    let x = (i as f32 - 0.5 * NUM_X as f32) / BASE as f32 + HALF_CELL_SIZE;
+    let y = (j as f32 - 0.5 * NUM_Y as f32) / BASE as f32 + HALF_CELL_SIZE;
+
+    (x, y)
+}
+
+use std::{
+    cell::{RefCell, RefMut},
+    rc::Rc,
+    sync::{Arc, Mutex},
+};
+use std::ops::DerefMut;
+use steel::{
+    gc::unsafe_erased_pointers::CustomReference,
+};
+
+// #[derive(Clone, Steel)]
+// pub struct ScmGrid<'a>(Rc<RefCell<&'a mut SdfGrid>>);
+// pub struct ScmGrid(Rc<RefCell<SdfGrid>>);
+pub struct ScmGrid<'a>(&'a mut SdfGrid);
+
+impl<'a> CustomReference for ScmGrid<'a> {}
+
+steel::custom_reference!(ScmGrid<'a>);
+
+fn scm_grid_set<'a>(grid: &mut ScmGrid, i: usize, j: usize, v: f32) {
+    grid.0.grid[i][j] = v;
+    // println!("Setting grid {i} {j}: {:?}", &grid.0.grid[..5]);
+}
+
+fn scm_point_x<'a>(p: (f32, f32)) -> f32 {
+    p.0
+}
+
+fn scm_point_y<'a>(p: (f32, f32)) -> f32 {
+    p.1
 }
 
 impl crate::controller::Controller for Controller {
     fn new(size: PhysicalSize<u32>) -> Self {
+        let mut vm = Engine::new();
+
+        println!("Register scm_length");
+        vm.register_fn("length", scm_length);
+        vm.register_fn("grid->point", grid_to_point);
+        vm.register_fn("grid-set", scm_grid_set);
+        vm.register_fn("point-x", scm_point_x);
+        vm.register_fn("point-y", scm_point_y);
+        vm.register_external_value("grid", 0);
+
+        vm.register_external_value("NUM_X", NUM_X);
+        vm.register_external_value("NUM_Y", NUM_Y);
+
+        println!("Run some code...");
+        vm.run(include_str!("./sdf.scm"))
+          .expect("Failed to initialise scheme");
+
         Self {
             size,
             start: Instant::now(),
@@ -223,6 +290,7 @@ impl crate::controller::Controller for Controller {
             grid: SdfGrid::new(),
             grid_needs_updating: true,
             smooth: true,
+            vm
         }
     }
 
@@ -347,7 +415,18 @@ impl crate::controller::Controller for Controller {
             self.grid_needs_updating = false;
             let shape = self.shape;
             let params = self.params();
-            self.grid.update(|p| sdf(p, shape, params));
+
+            self.vm.run(fs::read_to_string("./runner/src/shaders/sdf.scm").expect("failed to read sdf.scm"))
+              .expect("Failed to initialise scheme");
+
+            self.vm.with_mut_reference::<ScmGrid, ScmGrid>(&mut ScmGrid(&mut self.grid))
+                .consume(move |engine, args| {
+                    let grid = args[0].clone();
+                    engine.update_value("grid", grid);
+                    engine.call_function_by_name_with_args(r#"run-sdf"#, vec![]);
+                });
+
+            // self.grid.update(|p| sdf(p, shape, params));
             self.signal_new_buffers(event_proxy);
         }
     }
@@ -363,6 +442,7 @@ impl crate::controller::Controller for Controller {
     }
 }
 
+
 impl Controller {
     fn params(&self) -> Params {
         Params {
@@ -373,6 +453,44 @@ impl Controller {
         }
     }
 
+    fn update_grid(&mut self) {
+        // let grid_cell = RefCell::new(self.grid);
+        // let grid = ScmGrid(Rc::new(grid_cell));
+        // self.vm.call_function_by_name_with_args(r#"run-sdf"#, vec![ &mut self.grid ]).expect("Failed to run scheme function");
+        self.vm.with_mut_reference::<ScmGrid, ScmGrid>(&mut ScmGrid(&mut self.grid))
+            .consume(move |engine, args| {
+                let grid = args[0].clone();
+                engine.update_value("grid", grid);
+                engine.call_function_by_name_with_args(r#"run-sdf"#, vec![]);
+            })
+
+        // let value = self.sdf(vec2(x, y));
+    }
+
+//     fn update_grid(&mut self) {
+//         const HALF_CELL_SIZE: f32 = 0.5 / BASE as f32;
+//         for i in 0..NUM_X {
+//             for j in 0..NUM_Y {
+//                 let x = (i as f32 - 0.5 * NUM_X as f32) / BASE as f32 + HALF_CELL_SIZE;
+//                 let y = (j as f32 - 0.5 * NUM_Y as f32) / BASE as f32 + HALF_CELL_SIZE;
+//                 // let value = self.sdf(vec2(x, y));
+// 
+//                 self.vm.register_external_value("p", (x, y))
+//                   .expect("Failed to create p");
+//                 let value = self.vm.run(r#"(sdf p)"#).expect("Failed to run scheme function");
+// 
+//                 match value[0] {
+//                     SteelVal::IntV(l) => self.grid.set(i, j, l as f32),
+//                     SteelVal::NumV(f) => self.grid.set(i, j, f as f32),
+//                     _ => {
+//                         // !("Scheme function returned funny number");
+//                         self.grid.set(i, j, 0.0);
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// 
     fn signal_new_buffers(&self, event_proxy: &EventLoopProxy<UserEvent>) {
         if event_proxy.send_event(UserEvent::NewBuffersReady).is_err() {
             panic!("Event loop dead");

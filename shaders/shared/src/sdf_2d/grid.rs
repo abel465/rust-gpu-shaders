@@ -3,10 +3,10 @@ use spirv_std::glam::{vec2, Vec2};
 use spirv_std::num_traits::Float;
 
 const SMOOTH_PADDING: usize = 2;
-const BASE: usize = 64 - SMOOTH_PADDING;
+pub const BASE: usize = 64 - SMOOTH_PADDING;
 const AR: usize = 3;
-const NUM_Y: usize = BASE + SMOOTH_PADDING;
-const NUM_X: usize = BASE * AR + SMOOTH_PADDING;
+pub const NUM_Y: usize = BASE + SMOOTH_PADDING;
+pub const NUM_X: usize = BASE * AR + SMOOTH_PADDING;
 const HALF_CELL_SIZE: f32 = 0.5 / BASE as f32;
 
 pub struct SdfGrid {
