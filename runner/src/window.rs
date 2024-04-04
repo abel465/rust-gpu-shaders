@@ -1,5 +1,5 @@
 use crate::{shader::CompiledShaderModules, RustGPUShader};
-use winit::{
+use egui_winit::winit::{
     dpi::PhysicalSize,
     event_loop::{EventLoop, EventLoopBuilder},
     window::{self, WindowBuilder},

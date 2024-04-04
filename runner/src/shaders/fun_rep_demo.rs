@@ -6,7 +6,7 @@ use shared::{
     push_constants::fun_rep_demo::ShaderConstants,
 };
 use std::time::{Duration, Instant};
-use winit::{
+use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton, MouseScrollDelta},
 };

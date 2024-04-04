@@ -3,7 +3,7 @@ use egui::{
     vec2, Align2, Context, Layout, Vec2,
 };
 use strum::IntoEnumIterator;
-use winit::{event::WindowEvent, event_loop::EventLoopProxy};
+use egui_winit::winit::{event::WindowEvent, event_loop::EventLoopProxy};
 
 use crate::{
     controller::Controller,
@@ -59,7 +59,7 @@ impl Ui {
 
     pub fn prepare(
         &mut self,
-        window: &winit::window::Window,
+        window: &egui_winit::winit::window::Window,
         ui_state: &mut UiState,
         controller: &mut dyn Controller,
     ) -> (Vec<ClippedPrimitive>, TexturesDelta) {

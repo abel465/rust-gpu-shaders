@@ -1,7 +1,7 @@
 use bytemuck::Zeroable;
 use glam::vec2;
 use shared::push_constants::sierpinski_triangle::ShaderConstants;
-use winit::{dpi::PhysicalSize, event::MouseScrollDelta};
+use egui_winit::winit::{dpi::PhysicalSize, event::MouseScrollDelta};
 
 pub struct Controller {
     size: PhysicalSize<u32>,

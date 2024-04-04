@@ -2,7 +2,7 @@ use bytemuck::Zeroable;
 use egui::{vec2, Vec2};
 use shared::push_constants::ray_marching_2d::ShaderConstants;
 use std::time::{Duration, Instant};
-use winit::{
+use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton, MouseScrollDelta},
 };

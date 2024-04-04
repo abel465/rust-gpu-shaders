@@ -10,7 +10,7 @@ use shared::{
 };
 use std::{f32::consts::PI, time::Instant};
 use strum::IntoEnumIterator;
-use winit::{
+use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,

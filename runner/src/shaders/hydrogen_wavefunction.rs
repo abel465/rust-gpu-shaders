@@ -4,7 +4,7 @@ use egui::Context;
 use glam::{vec2, Vec2};
 use shared::push_constants::hydrogen_wavefunction::ShaderConstants;
 use std::time::Instant;
-use winit::{
+use egui_winit::winit::{
     dpi::PhysicalSize,
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,

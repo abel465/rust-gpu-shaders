@@ -1,5 +1,5 @@
 use crate::Options;
-use winit::window::Window;
+use egui_winit::winit::{dpi::PhysicalSize, window::Window};
 
 pub struct GraphicsContext {
     pub surface: wgpu::Surface,
@@ -51,7 +51,7 @@ impl GraphicsContext {
             .expect("Failed to create device");
 
         let auto_configure_surface =
-            |adapter: &_, device: &_, surface: wgpu::Surface, size: winit::dpi::PhysicalSize<_>| {
+            |adapter: &_, device: &_, surface: wgpu::Surface, size: PhysicalSize<_>| {
                 let mut surface_config = surface
                     .get_default_config(adapter, size.width, size.height)
                     .unwrap_or_else(|| {

@@ -3,7 +3,7 @@ use bytemuck::Zeroable;
 use egui::Context;
 use glam::{vec2, Vec2};
 use shared::{from_pixels, push_constants::koch_snowflake::ShaderConstants};
-use winit::{
+use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event_loop::EventLoopProxy,
 };

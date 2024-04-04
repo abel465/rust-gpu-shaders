@@ -3,7 +3,7 @@ use bytemuck::Zeroable;
 use glam::{vec2, vec3};
 use shared::push_constants::ray_marching::ShaderConstants;
 use std::time::{Duration, Instant};
-use winit::{
+use egui_winit::winit::{
     dpi::PhysicalSize,
     event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta},
 };

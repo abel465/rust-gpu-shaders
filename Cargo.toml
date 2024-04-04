@@ -25,11 +25,11 @@ license = "MIT OR Apache-2.0"
 
 [workspace.dependencies.spirv-std]
 git = "https://github.com/EmbarkStudios/rust-gpu"
-rev = "d0e374968a37d8a37c4f3509cd10719d384470f6"
+rev = "54f6978c25b7e168ded04e720b996625b3654ebd"
 
 [workspace.dependencies.spirv-builder]
 git = "https://github.com/EmbarkStudios/rust-gpu"
-rev = "d0e374968a37d8a37c4f3509cd10719d384470f6"
+rev = "54f6978c25b7e168ded04e720b996625b3654ebd"
 default-features = false
 
 [profile.dev]

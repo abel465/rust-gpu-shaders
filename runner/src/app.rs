@@ -4,7 +4,7 @@ use crate::{
     window::{UserEvent, Window},
     Options,
 };
-use winit::{
+use egui_winit::winit::{
     event::{DeviceEvent, ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::ControlFlow,
     window::CursorGrabMode,

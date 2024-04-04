@@ -19,16 +19,15 @@ use-compiled-tools = ["spirv-builder/use-compiled-tools"]
 cfg-if = "1.0.0"
 shared = { path = "../shaders/shared" }
 futures = { version = "0.3", default-features = false, features = ["std", "executor"] }
-# Vulkan SDK or MoltenVK needs to be installed for `vulkan-portability` to work on macOS
-wgpu = { version = "0.17.0", features = ["spirv", "vulkan-portability"] }
-winit = { version = "0.28.3" }
 structopt = "0.3"
 strum = { version = "0.25", default_features = false, features = ["std", "derive"] }
 bytemuck = "1.14"
-egui = { version = "0.23.0", features = ["extra_debug_asserts"] }
-egui-wgpu = { version = "0.23.0" }
-egui-winit = { version = "0.23.0" }
-glam = "0.24.2"
+egui = "0.23.0"
+egui-wgpu = "0.23.0"
+egui-winit = "0.23.0"
+glam = "0.25"
+[dependencies.wgpu]
+features = ["spirv", "vulkan-portability"]
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]
 env_logger = "0.10.0"

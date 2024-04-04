@@ -1,10 +1,10 @@
 use core::f32::consts::PI;
+use egui_winit::winit::{
+    dpi::PhysicalSize,
+    event::{ElementState, KeyboardInput, VirtualKeyCode},
+};
 use glam::{vec3, Mat4, Quat, Vec2, Vec2Swizzles, Vec3};
 use std::time::Duration;
-use winit::{
-    dpi::PhysicalSize,
-    event::{ElementState, KeyboardInput},
-};
 
 #[derive(Clone)]
 pub struct RotationCamera {
@@ -98,7 +98,6 @@ impl FirstPersonCamera {
     pub fn keyboard_input(&mut self, input: KeyboardInput) {
         let pressed = input.state == ElementState::Pressed;
         let amount = if pressed { 1.0 } else { 0.0 };
-        use winit::event::VirtualKeyCode;
         if let Some(keycode) = input.virtual_keycode {
             match keycode {
                 VirtualKeyCode::W => {

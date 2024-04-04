@@ -77,7 +77,7 @@ impl RenderPass {
     pub fn render(
         &mut self,
         ctx: &GraphicsContext,
-        window: &winit::window::Window,
+        window: &egui_winit::winit::window::Window,
         ui: &mut Ui,
         ui_state: &mut UiState,
         controller: &mut dyn Controller,
@@ -180,7 +180,7 @@ impl RenderPass {
         &mut self,
         ctx: &GraphicsContext,
         output_view: &TextureView,
-        window: &winit::window::Window,
+        window: &egui_winit::winit::window::Window,
         ui: &mut Ui,
         ui_state: &mut UiState,
         controller: &mut dyn Controller,

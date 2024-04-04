@@ -3,7 +3,7 @@ use bytemuck::Zeroable;
 use egui::Context;
 use glam::{vec2, Vec2};
 use shared::push_constants::mandelbrot::ShaderConstants;
-use winit::{
+use egui_winit::winit::{
     dpi::PhysicalSize,
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,

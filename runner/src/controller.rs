@@ -2,11 +2,12 @@ use crate::model::Vertex;
 use crate::window::UserEvent;
 use crate::{shaders, RustGPUShader};
 use egui::{Context, Ui};
+use egui_winit::winit::{
+    dpi::{PhysicalPosition, PhysicalSize},
+    event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta},
+    event_loop::EventLoopProxy,
+};
 use shaders::*;
-use winit::dpi::PhysicalSize;
-use winit::event::{ElementState, KeyboardInput, MouseScrollDelta};
-use winit::event_loop::EventLoopProxy;
-use winit::{dpi::PhysicalPosition, event::MouseButton};
 
 pub enum BindGroupBufferType<'a> {
     #[allow(dead_code)]

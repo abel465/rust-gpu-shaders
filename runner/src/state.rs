@@ -9,7 +9,7 @@ use crate::{
     Options, RustGPUShader,
 };
 use strum::IntoEnumIterator;
-use winit::{
+use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, WindowEvent},
 };
@@ -102,7 +102,7 @@ impl State {
         self.controller().update();
     }
 
-    pub fn render(&mut self, window: &winit::window::Window) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, window: &egui_winit::winit::window::Window) -> Result<(), wgpu::SurfaceError> {
         let controller = &mut *self.controllers[self.ui_state.active_shader as usize];
         let depth_texture = controller
             .buffers()
@@ -121,7 +121,7 @@ impl State {
 
     pub fn update_and_render(
         &mut self,
-        window: &winit::window::Window,
+        window: &egui_winit::winit::window::Window,
     ) -> Result<(), wgpu::SurfaceError> {
         self.update();
         self.render(window)
