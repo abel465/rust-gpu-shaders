@@ -3,7 +3,7 @@ use spirv_std::glam::{vec2, Vec2};
 use spirv_std::num_traits::Float;
 
 const SMOOTH_PADDING: usize = 2;
-const BASE: usize = 64 - SMOOTH_PADDING;
+const BASE: usize = 256 - SMOOTH_PADDING;
 const AR: usize = 3;
 const NUM_Y: usize = BASE + SMOOTH_PADDING;
 const NUM_X: usize = BASE * AR + SMOOTH_PADDING;
@@ -23,17 +23,16 @@ impl SdfGrid {
 
     pub fn update<F>(&mut self, sdf: F)
     where
-        F: Fn(Vec2) -> f32,
+        F: Fn(Vec2) -> f32 + Sync,
     {
-        for i in 0..NUM_X {
-            for j in 0..NUM_Y {
-                self.grid[i][j] = sdf(vec2(
-                    i as f32 - 0.5 * NUM_X as f32,
-                    j as f32 - 0.5 * NUM_Y as f32,
-                ) / BASE as f32
-                    + HALF_CELL_SIZE);
-            }
-        }
+        use rayon::prelude::*;
+        self.grid.par_iter_mut().enumerate().for_each(|(i, col)| {
+            let x = i as f32 - 0.5 * NUM_X as f32;
+            col.par_iter_mut().enumerate().for_each(|(j, value)| {
+                let y = j as f32 - 0.5 * NUM_Y as f32;
+                *value = sdf(vec2(x, y) / BASE as f32 + HALF_CELL_SIZE);
+            });
+        });
     }
 }
 
