@@ -38,6 +38,8 @@
             xorg.libXi
             vulkan-loader
             vulkan-tools
+            wayland
+            libxkbcommon
           ];
         };
       });

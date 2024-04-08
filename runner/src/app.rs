@@ -5,45 +5,50 @@ use crate::{
     Options,
 };
 use egui_winit::winit::{
-    event::{DeviceEvent, ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+    event::{DeviceEvent, ElementState, Event, KeyEvent, WindowEvent},
     event_loop::ControlFlow,
+    keyboard::{Key, NamedKey},
     window::CursorGrabMode,
 };
 
 async fn run(options: Options, window: Window, compiled_shader_modules: CompiledShaderModules) {
-    let mut app = state::State::new(&window, compiled_shader_modules, options).await;
+    let event_loop = window.event_loop;
+    let mut app = state::State::new(
+        &window.window,
+        event_loop.create_proxy(),
+        compiled_shader_modules,
+        options,
+    )
+    .await;
 
-    window.event_loop.run(move |event, _, control_flow| {
+    let exit = event_loop.run(|event, event_loop_window_target| {
         let window = &window.window;
-        *control_flow = ControlFlow::Wait;
+        event_loop_window_target.set_control_flow(ControlFlow::Wait);
 
         match event {
-            Event::RedrawRequested(window_id) if window_id == window.id() => {
-                // TODO: only redraw if needed?
-                window.request_redraw();
-
-                if let Err(wgpu::SurfaceError::OutOfMemory) = app.update_and_render(&window) {
-                    *control_flow = ControlFlow::Exit
-                }
-            }
-            Event::MainEventsCleared => {
-                window.request_redraw();
-            }
             Event::WindowEvent { event, window_id }
-                if window_id == window.id() && !app.ui_consumes_event(&event) =>
+                if window_id == window.id() && !app.ui_consumes_event(&window, &event) =>
             {
                 match event {
+                    WindowEvent::RedrawRequested => {
+                        window.request_redraw();
+
+                        if let Err(wgpu::SurfaceError::OutOfMemory) = app.update_and_render(&window)
+                        {
+                            event_loop_window_target.exit()
+                        }
+                    }
                     WindowEvent::CloseRequested
                     | WindowEvent::KeyboardInput {
-                        input:
-                            KeyboardInput {
+                        event:
+                            KeyEvent {
                                 state: ElementState::Pressed,
-                                virtual_keycode: Some(VirtualKeyCode::Escape),
+                                logical_key: Key::Named(NamedKey::Escape),
                                 ..
                             },
                         ..
-                    } => *control_flow = ControlFlow::Exit,
-                    WindowEvent::KeyboardInput { input, .. } => app.keyboard_input(input),
+                    } => event_loop_window_target.exit(),
+                    WindowEvent::KeyboardInput { event, .. } => app.keyboard_input(event),
                     WindowEvent::Resized(size) => app.resize(size),
                     WindowEvent::MouseInput { state, button, .. } => app.mouse_input(state, button),
                     WindowEvent::MouseWheel { delta, .. } => app.mouse_scroll(delta),
@@ -61,10 +66,6 @@ async fn run(options: Options, window: Window, compiled_shader_modules: Compiled
                             }
                         }
                         app.mouse_move(position)
-                    }
-                    WindowEvent::CursorLeft { .. } => {
-                        window.set_cursor_grab(CursorGrabMode::None).unwrap();
-                        window.set_cursor_visible(true);
                     }
                     _ => {}
                 }
@@ -91,6 +92,10 @@ async fn run(options: Options, window: Window, compiled_shader_modules: Compiled
             _ => {}
         }
     });
+    match exit {
+        Result::Err(e) => eprintln!("Event loop Error: {e}"),
+        Ok(()) => {}
+    }
 }
 
 pub fn start(options: Options) {

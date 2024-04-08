@@ -5,38 +5,42 @@ use crate::{
     shader::{self, CompiledShaderModules},
     texture::Texture,
     ui::{Ui, UiState},
-    window::Window,
+    window::UserEvent,
     Options, RustGPUShader,
 };
-use strum::IntoEnumIterator;
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
-    event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta, WindowEvent},
+    event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent},
+    event_loop::EventLoopProxy,
+    window::Window,
 };
+use strum::IntoEnumIterator;
 
-pub struct State {
+pub struct State<'a> {
     rpass: RenderPass,
-    ctx: GraphicsContext,
+    ctx: GraphicsContext<'a>,
     controllers: Vec<Box<dyn Controller>>,
     ui: Ui,
     ui_state: UiState,
     depth_texture: Texture,
+    options: Options,
 }
 
-impl State {
+impl<'a> State<'a> {
     pub async fn new(
-        window: &Window,
+        window: &'a Window,
+        event_proxy: EventLoopProxy<UserEvent>,
         compiled_shader_modules: CompiledShaderModules,
         options: Options,
     ) -> Self {
-        let ctx = GraphicsContext::new(&window.window, &options).await;
+        let ctx = GraphicsContext::new(window, &options).await;
 
-        let ui = Ui::new(window);
+        let ui = Ui::new(window, event_proxy);
 
         let ui_state = UiState::new(options.shader);
 
         let controllers = RustGPUShader::iter()
-            .map(|s| new_controller(s, window.window.inner_size()))
+            .map(|s| new_controller(s, window.inner_size()))
             .collect::<Vec<Box<dyn Controller>>>();
 
         let controller = &controllers[ui_state.active_shader as usize];
@@ -58,6 +62,7 @@ impl State {
             ui,
             ui_state,
             depth_texture,
+            options,
         }
     }
 
@@ -78,8 +83,8 @@ impl State {
         }
     }
 
-    pub fn keyboard_input(&mut self, input: KeyboardInput) {
-        self.controller().keyboard_input(input);
+    pub fn keyboard_input(&mut self, event: KeyEvent) {
+        self.controller().keyboard_input(event);
     }
 
     pub fn mouse_input(&mut self, state: ElementState, button: MouseButton) {
@@ -102,7 +107,7 @@ impl State {
         self.controller().update();
     }
 
-    pub fn render(&mut self, window: &egui_winit::winit::window::Window) -> Result<(), wgpu::SurfaceError> {
+    pub fn render(&mut self, window: &Window) -> Result<(), wgpu::SurfaceError> {
         let controller = &mut *self.controllers[self.ui_state.active_shader as usize];
         let depth_texture = controller
             .buffers()
@@ -119,16 +124,13 @@ impl State {
         )
     }
 
-    pub fn update_and_render(
-        &mut self,
-        window: &egui_winit::winit::window::Window,
-    ) -> Result<(), wgpu::SurfaceError> {
+    pub fn update_and_render(&mut self, window: &Window) -> Result<(), wgpu::SurfaceError> {
         self.update();
         self.render(window)
     }
 
-    pub fn ui_consumes_event(&mut self, event: &WindowEvent) -> bool {
-        self.ui.consumes_event(event)
+    pub fn ui_consumes_event(&mut self, window: &Window, event: &WindowEvent) -> bool {
+        self.ui.consumes_event(window, event)
     }
 
     pub fn new_module(&mut self, shader: RustGPUShader, new_module: CompiledShaderModules) {
@@ -148,8 +150,8 @@ impl State {
             shader,
             shader::maybe_watch(
                 &Options {
-                    force_spirv_passthru: false,
                     shader,
+                    ..self.options
                 },
                 None,
             ),

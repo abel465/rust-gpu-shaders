@@ -19,7 +19,7 @@ pub struct Window {
 
 impl Window {
     pub fn new() -> Self {
-        let event_loop = EventLoopBuilder::with_user_event().build();
+        let event_loop = EventLoopBuilder::with_user_event().build().unwrap();
         let window = WindowBuilder::new()
             .with_title("Rust GPU Shaders")
             .with_inner_size(PhysicalSize::new(1280.0, 720.0))

@@ -5,7 +5,7 @@ use shared::push_constants::ray_marching::ShaderConstants;
 use std::time::{Duration, Instant};
 use egui_winit::winit::{
     dpi::PhysicalSize,
-    event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta},
+    event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta},
 };
 
 pub struct Controller {
@@ -35,8 +35,8 @@ impl crate::controller::Controller for Controller {
         }
     }
 
-    fn keyboard_input(&mut self, input: KeyboardInput) {
-        self.camera.keyboard_input(input);
+    fn keyboard_input(&mut self, event: KeyEvent) {
+        self.camera.keyboard_input(event);
     }
 
     fn mouse_input(&mut self, state: ElementState, button: MouseButton) {

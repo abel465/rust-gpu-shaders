@@ -4,7 +4,7 @@ use crate::{shaders, RustGPUShader};
 use egui::{Context, Ui};
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
-    event::{ElementState, KeyboardInput, MouseButton, MouseScrollDelta},
+    event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,
 };
 use shaders::*;
@@ -46,7 +46,7 @@ pub trait Controller {
     fn new(size: PhysicalSize<u32>) -> Self
     where
         Self: Sized;
-    fn keyboard_input(&mut self, _input: KeyboardInput) {}
+    fn keyboard_input(&mut self, _input: KeyEvent) {}
     fn mouse_input(&mut self, _state: ElementState, _button: MouseButton) {}
     fn mouse_move(&mut self, _position: PhysicalPosition<f64>) {}
     fn mouse_delta(&mut self, _delta: (f64, f64)) {}

@@ -2,19 +2,19 @@ use structopt::StructOpt;
 use strum::{Display, EnumIter, EnumString};
 
 mod app;
+mod camera;
 mod context;
 mod controller;
+mod egui_components;
 mod fps_counter;
+mod model;
 mod render_pass;
 mod shader;
 mod shaders;
 mod state;
+mod texture;
 mod ui;
 mod window;
-mod model;
-mod camera;
-mod texture;
-mod egui_components;
 
 #[derive(EnumString, EnumIter, Display, PartialEq, Eq, Copy, Clone)]
 pub enum RustGPUShader {
@@ -31,14 +31,16 @@ pub enum RustGPUShader {
     FunRepDemo,
 }
 
-#[derive(StructOpt, Clone)]
+#[derive(StructOpt, Clone, Copy)]
 #[structopt(name = "example-runner-wgpu")]
 pub struct Options {
     #[structopt(short, long, default_value = "Mandelbrot")]
     shader: RustGPUShader,
 
+    // Default to true after the following is fixed
+    // https://github.com/gfx-rs/wgpu/issues/5128
     #[structopt(long)]
-    force_spirv_passthru: bool,
+    validate_spirv: bool,
 }
 
 pub fn main() {

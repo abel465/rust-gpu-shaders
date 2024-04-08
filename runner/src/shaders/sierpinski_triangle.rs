@@ -6,7 +6,6 @@ use egui_winit::winit::{dpi::PhysicalSize, event::MouseScrollDelta};
 pub struct Controller {
     size: PhysicalSize<u32>,
     scroll: f64,
-    zoom: f32,
     shader_constants: ShaderConstants,
 }
 
@@ -15,7 +14,6 @@ impl crate::controller::Controller for Controller {
         Self {
             size,
             scroll: 0.0,
-            zoom: 0.0,
             shader_constants: ShaderConstants::zeroed(),
         }
     }
@@ -41,11 +39,10 @@ impl crate::controller::Controller for Controller {
         } else {
             self.scroll
         };
-        self.zoom = 0.85_f64.powf(scroll) as f32;
 
         self.shader_constants = ShaderConstants {
             size: self.size.into(),
-            zoom: self.zoom,
+            zoom: 0.85_f64.powf(scroll) as f32,
             dim: vec2(-0.08443636, -0.087451585).into(),
         };
     }

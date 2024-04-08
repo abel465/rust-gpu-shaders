@@ -1,7 +1,8 @@
 use core::f32::consts::PI;
 use egui_winit::winit::{
     dpi::PhysicalSize,
-    event::{ElementState, KeyboardInput, VirtualKeyCode},
+    event::{ElementState, KeyEvent},
+    keyboard::{KeyCode, PhysicalKey},
 };
 use glam::{vec3, Mat4, Quat, Vec2, Vec2Swizzles, Vec3};
 use std::time::Duration;
@@ -95,30 +96,30 @@ impl FirstPersonCamera {
         self.position += translate.normalize_or_zero() * 4.0 * dt;
     }
 
-    pub fn keyboard_input(&mut self, input: KeyboardInput) {
-        let pressed = input.state == ElementState::Pressed;
+    pub fn keyboard_input(&mut self, event: KeyEvent) {
+        let pressed = event.state == ElementState::Pressed;
         let amount = if pressed { 1.0 } else { 0.0 };
-        if let Some(keycode) = input.virtual_keycode {
+        if let PhysicalKey::Code(keycode) = event.physical_key {
             match keycode {
-                VirtualKeyCode::W => {
+                KeyCode::KeyW => {
                     self.amount_forward = amount;
                     if pressed {
                         self.amount_backward = 0.0;
                     }
                 }
-                VirtualKeyCode::S => {
+                KeyCode::KeyS => {
                     self.amount_backward = amount;
                     if pressed {
                         self.amount_forward = 0.0;
                     }
                 }
-                VirtualKeyCode::A => {
+                KeyCode::KeyA => {
                     self.amount_left = amount;
                     if pressed {
                         self.amount_right = 0.0;
                     }
                 }
-                VirtualKeyCode::D => {
+                KeyCode::KeyD => {
                     self.amount_right = amount;
                     if pressed {
                         self.amount_left = 0.0;

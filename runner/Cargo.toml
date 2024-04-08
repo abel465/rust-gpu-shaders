@@ -21,13 +21,12 @@ shared = { path = "../shaders/shared" }
 futures = { version = "0.3", default-features = false, features = ["std", "executor"] }
 structopt = "0.3"
 strum = { version = "0.25", default_features = false, features = ["std", "derive"] }
-bytemuck = "1.14"
-egui = "0.23.0"
-egui-wgpu = "0.23.0"
-egui-winit = "0.23.0"
+wgpu = { version = "0.19.1", features = ["spirv", "vulkan-portability"] }
+bytemuck = "1.15.0"
+egui = "0.27.2"
+egui-wgpu = "0.27.2"
+egui-winit = "0.27.2"
 glam = "0.25"
-[dependencies.wgpu]
-features = ["spirv", "vulkan-portability"]
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]
 env_logger = "0.10.0"

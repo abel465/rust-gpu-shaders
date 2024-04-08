@@ -1,3 +1,5 @@
+use egui_wgpu::wgpu;
+
 pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,

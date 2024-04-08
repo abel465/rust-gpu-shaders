@@ -7,6 +7,7 @@ use crate::{
     ui::{Ui, UiState},
     Options,
 };
+use egui_winit::winit::window::Window;
 use wgpu::{util::DeviceExt, BindGroupLayout, TextureView};
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -77,7 +78,7 @@ impl RenderPass {
     pub fn render(
         &mut self,
         ctx: &GraphicsContext,
-        window: &egui_winit::winit::window::Window,
+        window: &Window,
         ui: &mut Ui,
         ui_state: &mut UiState,
         controller: &mut dyn Controller,
@@ -123,6 +124,8 @@ impl RenderPass {
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("Shader Render Pass"),
+                occlusion_query_set: None,
+                timestamp_writes: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &output_view,
                     resolve_target: None,
@@ -132,7 +135,7 @@ impl RenderPass {
                         } else {
                             wgpu::Color::GREEN
                         }),
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: depth_texture.map(|depth_texture| {
@@ -140,7 +143,7 @@ impl RenderPass {
                         view: &depth_texture.view,
                         depth_ops: Some(wgpu::Operations {
                             load: wgpu::LoadOp::Clear(1.0),
-                            store: true,
+                            store: wgpu::StoreOp::Store,
                         }),
                         stencil_ops: None,
                     }
@@ -180,14 +183,14 @@ impl RenderPass {
         &mut self,
         ctx: &GraphicsContext,
         output_view: &TextureView,
-        window: &egui_winit::winit::window::Window,
+        window: &Window,
         ui: &mut Ui,
         ui_state: &mut UiState,
         controller: &mut dyn Controller,
     ) {
         let (clipped_primitives, textures_delta) = ui.prepare(window, ui_state, controller);
 
-        let screen_descriptor = egui_wgpu::renderer::ScreenDescriptor {
+        let screen_descriptor = egui_wgpu::ScreenDescriptor {
             size_in_pixels: [ctx.config.width, ctx.config.height],
             pixels_per_point: window.scale_factor() as f32,
         };
@@ -214,12 +217,14 @@ impl RenderPass {
         {
             let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("UI Render Pass"),
+                occlusion_query_set: None,
+                timestamp_writes: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &output_view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
@@ -344,14 +349,14 @@ fn create_pipeline(
 ) -> wgpu::RenderPipeline {
     // FIXME(eddyb) automate this decision by default.
     let create_module = |module| {
-        if options.force_spirv_passthru {
-            unsafe { device.create_shader_module_spirv(&module) }
-        } else {
+        if options.validate_spirv {
             let wgpu::ShaderModuleDescriptorSpirV { label, source } = module;
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label,
                 source: wgpu::ShaderSource::SpirV(source),
             })
+        } else {
+            unsafe { device.create_shader_module_spirv(&module) }
         }
     };
 

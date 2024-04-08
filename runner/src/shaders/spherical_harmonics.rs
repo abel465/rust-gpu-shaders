@@ -1,14 +1,14 @@
 use crate::window::UserEvent;
 use bytemuck::Zeroable;
 use egui::{Color32, Context, Rect, RichText, Sense, Stroke, Ui};
-use glam::{vec2, Quat, Vec2, Vec2Swizzles};
-use shared::push_constants::spherical_harmonics::{ShaderConstants, Variant};
-use std::time::Instant;
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,
 };
+use glam::{vec2, Quat, Vec2, Vec2Swizzles};
+use shared::push_constants::spherical_harmonics::{ShaderConstants, Variant};
+use std::time::Instant;
 
 pub struct Controller {
     size: PhysicalSize<u32>,

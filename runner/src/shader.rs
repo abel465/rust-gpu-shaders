@@ -68,7 +68,7 @@ pub fn maybe_watch(
             .copied()
             .collect::<PathBuf>();
 
-        let has_debug_printf = options.force_spirv_passthru;
+        let has_debug_printf = !options.validate_spirv;
 
         let builder = SpirvBuilder::new(crate_path, "spirv-unknown-vulkan1.1")
             .print_metadata(MetadataPrintout::None)
