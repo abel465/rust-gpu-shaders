@@ -1,4 +1,4 @@
-use egui::{DragValue, Ui};
+use egui::{ComboBox, DragValue, Ui};
 use glam::{UVec2, Vec2};
 use strum::IntoEnumIterator;
 
@@ -27,9 +27,13 @@ pub struct Repetition {
 impl Repetition {
     pub fn ui(&mut self, ui: &mut Ui) {
         use RepetitionValue::*;
-        for repetition in RepetitionValue::iter() {
-            ui.radio_value(&mut self.current, repetition, repetition.to_string());
-        }
+        ComboBox::from_id_source("repetition")
+            .selected_text(format!("{}", self.current))
+            .show_ui(ui, |ui| {
+                for repetition in RepetitionValue::iter() {
+                    ui.selectable_value(&mut self.current, repetition, repetition.to_string());
+                }
+            });
         match self.current {
             None => {}
             Unlimited => {
