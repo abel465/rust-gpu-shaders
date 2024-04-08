@@ -8,6 +8,11 @@ use crate::{
 };
 use bytemuck::Zeroable;
 use egui::{Context, CursorIcon};
+use egui_winit::winit::{
+    dpi::{PhysicalPosition, PhysicalSize},
+    event::{ElementState, MouseButton, MouseScrollDelta},
+    event_loop::EventLoopProxy,
+};
 use glam::{vec2, UVec2, Vec2};
 use sdf::grid::SdfGrid;
 use shared::push_constants::sdfs_2d::{ShaderConstants, MAX_NUM_POINTS};
@@ -18,11 +23,6 @@ use std::{
     time::{Duration, Instant},
 };
 use strum::IntoEnumIterator;
-use egui_winit::winit::{
-    dpi::{PhysicalPosition, PhysicalSize},
-    event::{ElementState, MouseButton, MouseScrollDelta},
-    event_loop::EventLoopProxy,
-};
 
 #[derive(strum::EnumIter, strum::Display, PartialEq, Copy, Clone)]
 pub enum Shape {
@@ -41,6 +41,7 @@ pub enum Shape {
     Pentagon,
     Polygon,
     Cross,
+    SierpinskiTriangle,
 }
 
 impl Shape {
@@ -51,6 +52,7 @@ impl Shape {
         const H: &'static str = "Height";
         match self {
             Disk | Capsule | Hexagon | Pentagon | EquilateralTriangle => &[R],
+            SierpinskiTriangle => &[R, "N"],
             Rectangle | IsoscelesTriangle => &[W, H],
             Torus => &["Major Radius", "Minor Radius"],
             Cross => &["Length", "Thickness"],
@@ -62,6 +64,7 @@ impl Shape {
         use Shape::*;
         match self {
             Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.0..=0.5],
+            SierpinskiTriangle => &[0.0..=2.0 / 3.0, 0.0..=10.0],
             Rectangle => &[0.0..=1.0, 0.0..=1.0],
             IsoscelesTriangle => &[0.0..=1.0, -0.5..=0.5],
             Torus => &[0.0..=0.5, 0.0..=0.2],
@@ -74,6 +77,7 @@ impl Shape {
         use Shape::*;
         match self {
             Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.2],
+            SierpinskiTriangle => &[0.5, 5.0],
             Rectangle | IsoscelesTriangle => &[0.4, 0.3],
             Torus => &[0.2, 0.1],
             Cross => &[0.35, 0.1],
@@ -95,6 +99,14 @@ impl Shape {
             Capsule | LineSegment => &[[-0.1, -0.1], [0.2, 0.1]],
             Ray => &[[0.0, 0.0]],
             _ => &[],
+        }
+    }
+
+    fn num_integer_dims(&self) -> usize {
+        use Shape::*;
+        match self {
+            SierpinskiTriangle => 1,
+            _ => 0,
         }
     }
 
@@ -326,13 +338,18 @@ impl crate::controller::Controller for Controller {
             for i in 0..labels.len() {
                 let ranges = self.shape.dim_range();
                 let range = ranges[i].clone();
-                let speed = (range.end() - range.start()) * 0.02;
+                let (speed, max_decimals) = if i < labels.len() - self.shape.num_integer_dims() {
+                    ((range.end() - range.start()) * 0.02, None)
+                } else {
+                    (0.25, Some(0))
+                };
                 ui.horizontal(|ui| {
-                    ui.label(labels[i as usize]);
+                    ui.label(labels[i]);
                     ui.add(
-                        egui::DragValue::new(&mut params.dims[i as usize])
+                        egui::DragValue::new(&mut params.dims[i])
                             .clamp_range(range)
-                            .speed(speed),
+                            .speed(speed)
+                            .max_decimals_opt(max_decimals),
                     );
                 });
             }
@@ -395,6 +412,9 @@ fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
         Disk => sdf::disk(p, radius),
         Rectangle => sdf::rectangle(p, dim),
         EquilateralTriangle => sdf::equilateral_triangle(p, radius),
+        SierpinskiTriangle => {
+            sdf::fractal::sierpinski_triangle(p - vec2(0.0, -radius * 0.25), radius, dim.y as u32)
+        }
         IsoscelesTriangle => sdf::isosceles_triangle(p, dim),
         Triangle => sdf::triangle(p, p0, p1, p2),
         Capsule => sdf::capsule(p, p0, p1, radius),

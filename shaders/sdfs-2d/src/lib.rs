@@ -37,7 +37,6 @@ pub fn main_fs(
     };
     col *= 1.0 - (-6.0 * d.abs()).exp();
     col *= 0.8 + 0.2 * (150.0 * d).cos();
-    col = col.lerp(Vec3::ONE, 1.0 - smoothstep(0.0, 0.01, d.abs()));
 
     if constants.mouse_button_pressed & 1 != 0 {
         let d = sdf(cursor, grid, smooth);
