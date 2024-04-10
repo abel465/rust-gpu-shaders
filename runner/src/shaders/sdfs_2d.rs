@@ -28,17 +28,12 @@ use strum::IntoEnumIterator;
 pub enum Shape {
     Disk,
     Rectangle,
-    EquilateralTriangle,
     IsoscelesTriangle,
     Triangle,
-    Capsule,
     Torus,
-    Line,
     Plane,
     LineSegment,
     Ray,
-    Hexagon,
-    Pentagon,
     Polygon,
     Cross,
     SierpinskiTriangle,
@@ -54,20 +49,20 @@ impl Shape {
         const W: &'static str = "Width";
         const H: &'static str = "Height";
         match self {
-            Disk | Capsule | Hexagon | Pentagon | EquilateralTriangle => &[R],
+            Disk => &[R],
             SierpinskiTriangle | KochSnowflake | RegularPolygon => &[R, "N"],
             RegularStar => &[R, "Sharpness", "N"],
             Rectangle | IsoscelesTriangle => &[W, H],
             Torus => &["Major Radius", "Minor Radius"],
             Cross => &["Length", "Thickness"],
-            Triangle | Plane | Line | Ray | LineSegment | Polygon => &[],
+            Triangle | Plane | Ray | LineSegment | Polygon => &[],
         }
     }
 
     fn dim_range(&self) -> &[core::ops::RangeInclusive<f32>] {
         use Shape::*;
         match self {
-            Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.0..=0.5],
+            Disk => &[0.0..=0.5],
             SierpinskiTriangle => &[0.0..=2.0 / 3.0, 0.0..=10.0],
             KochSnowflake => &[0.0..=0.5, 0.0..=5.0],
             RegularStar => &[0.0..=0.5, 0.0..=1.0, 3.0..=10.0],
@@ -76,22 +71,22 @@ impl Shape {
             IsoscelesTriangle => &[0.0..=1.0, -0.5..=0.5],
             Torus => &[0.0..=0.5, 0.0..=0.2],
             Cross => &[0.0..=0.5, 0.0..=0.5],
-            Triangle | Plane | Line | Ray | LineSegment | Polygon => &[],
+            Triangle | Plane | Ray | LineSegment | Polygon => &[],
         }
     }
 
     fn default_dims(&self) -> &[f32] {
         use Shape::*;
         match self {
-            Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.2],
+            Disk => &[0.2],
             SierpinskiTriangle => &[0.5, 5.0],
             KochSnowflake => &[0.4, 2.0],
-            RegularStar => &[0.4, 0.5, 3.0],
-            RegularPolygon => &[0.4, 3.0],
+            RegularStar => &[0.4, 0.5, 5.0],
+            RegularPolygon => &[0.4, 5.0],
             Rectangle | IsoscelesTriangle => &[0.4, 0.3],
             Torus => &[0.2, 0.1],
             Cross => &[0.35, 0.1],
-            Triangle | Plane | Line | Ray | LineSegment | Polygon => &[],
+            Triangle | Plane | Ray | LineSegment | Polygon => &[],
         }
     }
 
@@ -106,8 +101,9 @@ impl Shape {
                 [-0.4, 0.2],
             ],
             Triangle => &[[-0.1, -0.2], [0.3, 0.2], [0.2, -0.3]],
-            Capsule | LineSegment => &[[-0.1, -0.1], [0.2, 0.1]],
+            LineSegment => &[[-0.1, -0.1], [0.2, 0.1]],
             Ray => &[[0.0, 0.0], [0.25, 0.0]],
+            Plane => &[[0.0, 0.0], [0.0, 0.25]],
             _ => &[],
         }
     }
@@ -423,7 +419,6 @@ fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
     let f = |p| match shape {
         Disk => sdf::disk(p, radius),
         Rectangle => sdf::rectangle(p, dim2),
-        EquilateralTriangle => sdf::equilateral_triangle(p, radius),
         KochSnowflake => sdf::fractal::koch_snowflake(p, radius, dim.y as u32),
         RegularStar => sdf::regular_star(p, radius, dim.z as u32, dim.y),
         RegularPolygon => sdf::regular_polygon(p, radius, dim.y as u32),
@@ -432,14 +427,10 @@ fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
         }
         IsoscelesTriangle => sdf::isosceles_triangle(p, dim2),
         Triangle => sdf::triangle(p, p0, p1, p2),
-        Capsule => sdf::capsule(p, p0, p1, radius),
         Torus => sdf::torus(p, dim2),
-        Line => sdf::line(p, Vec2::Y),
-        Plane => sdf::plane(p, Vec2::Y),
+        Plane => sdf::plane(p, (p1 - p0).normalize()),
         LineSegment => sdf::line_segment(p, p0, p1),
         Ray => sdf::ray(p - p0, (p1 - p0).normalize()),
-        Hexagon => sdf::hexagon(p, radius),
-        Pentagon => sdf::pentagon(p, radius),
         Polygon => sdf::polygon(p, [p0, p1, p2, p3, p4]),
         Cross => sdf::cross(p, dim2),
     };
