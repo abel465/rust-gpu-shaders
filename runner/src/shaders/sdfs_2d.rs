@@ -13,7 +13,7 @@ use egui_winit::winit::{
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,
 };
-use glam::{vec2, UVec2, Vec2};
+use glam::{vec2, UVec2, Vec2, Vec3, Vec3Swizzles};
 use sdf::grid::SdfGrid;
 use shared::push_constants::sdfs_2d::{ShaderConstants, MAX_NUM_POINTS};
 use shared::sdf_2d as sdf;
@@ -43,6 +43,8 @@ pub enum Shape {
     Cross,
     SierpinskiTriangle,
     KochSnowflake,
+    RegularStar,
+    RegularPolygon,
 }
 
 impl Shape {
@@ -53,7 +55,8 @@ impl Shape {
         const H: &'static str = "Height";
         match self {
             Disk | Capsule | Hexagon | Pentagon | EquilateralTriangle => &[R],
-            SierpinskiTriangle | KochSnowflake => &[R, "N"],
+            SierpinskiTriangle | KochSnowflake | RegularPolygon => &[R, "N"],
+            RegularStar => &[R, "Sharpness", "N"],
             Rectangle | IsoscelesTriangle => &[W, H],
             Torus => &["Major Radius", "Minor Radius"],
             Cross => &["Length", "Thickness"],
@@ -67,6 +70,8 @@ impl Shape {
             Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.0..=0.5],
             SierpinskiTriangle => &[0.0..=2.0 / 3.0, 0.0..=10.0],
             KochSnowflake => &[0.0..=0.5, 0.0..=5.0],
+            RegularStar => &[0.0..=0.5, 0.0..=1.0, 3.0..=10.0],
+            RegularPolygon => &[0.0..=0.5, 3.0..=10.0],
             Rectangle => &[0.0..=1.0, 0.0..=1.0],
             IsoscelesTriangle => &[0.0..=1.0, -0.5..=0.5],
             Torus => &[0.0..=0.5, 0.0..=0.2],
@@ -81,6 +86,8 @@ impl Shape {
             Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.2],
             SierpinskiTriangle => &[0.5, 5.0],
             KochSnowflake => &[0.4, 2.0],
+            RegularStar => &[0.4, 0.5, 3.0],
+            RegularPolygon => &[0.4, 3.0],
             Rectangle | IsoscelesTriangle => &[0.4, 0.3],
             Torus => &[0.2, 0.1],
             Cross => &[0.35, 0.1],
@@ -109,6 +116,7 @@ impl Shape {
         use Shape::*;
         match self {
             SierpinskiTriangle | KochSnowflake => 1,
+            RegularStar | RegularPolygon => 1,
             _ => 0,
         }
     }
@@ -121,7 +129,7 @@ impl Shape {
         }
 
         let default_dims = self.default_dims();
-        let mut dims = [0.0; 2];
+        let mut dims = [0.0; 3];
         for i in 0..default_dims.len() {
             dims[i] = default_dims[i];
         }
@@ -190,7 +198,7 @@ impl Default for RepetitionData {
 #[derive(Copy, Clone, PartialEq)]
 struct Params {
     pub shape: Shape,
-    pub dims: [f32; 2],
+    pub dims: [f32; 3],
     pub ps: [[f32; 2]; MAX_NUM_POINTS],
     pub rot: f32,
     pub repeat: RepetitionData,
@@ -402,7 +410,8 @@ impl Controller {
 
 fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
     use Shape::*;
-    let dim: Vec2 = params.dims.into();
+    let dim: Vec3 = params.dims.into();
+    let dim2 = dim.xy();
     let radius = dim.x;
     let p0: Vec2 = params.ps[0].into();
     let p1: Vec2 = params.ps[1].into();
@@ -413,16 +422,18 @@ fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
 
     let f = |p| match shape {
         Disk => sdf::disk(p, radius),
-        Rectangle => sdf::rectangle(p, dim),
+        Rectangle => sdf::rectangle(p, dim2),
         EquilateralTriangle => sdf::equilateral_triangle(p, radius),
         KochSnowflake => sdf::fractal::koch_snowflake(p, radius, dim.y as u32),
+        RegularStar => sdf::regular_star(p, radius, dim.z as u32, dim.y),
+        RegularPolygon => sdf::regular_polygon(p, radius, dim.y as u32),
         SierpinskiTriangle => {
             sdf::fractal::sierpinski_triangle(p - vec2(0.0, -radius * 0.25), radius, dim.y as u32)
         }
-        IsoscelesTriangle => sdf::isosceles_triangle(p, dim),
+        IsoscelesTriangle => sdf::isosceles_triangle(p, dim2),
         Triangle => sdf::triangle(p, p0, p1, p2),
         Capsule => sdf::capsule(p, p0, p1, radius),
-        Torus => sdf::torus(p, dim),
+        Torus => sdf::torus(p, dim2),
         Line => sdf::line(p, Vec2::Y),
         Plane => sdf::plane(p, Vec2::Y),
         LineSegment => sdf::line_segment(p, p0, p1),
@@ -430,7 +441,7 @@ fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
         Hexagon => sdf::hexagon(p, radius),
         Pentagon => sdf::pentagon(p, radius),
         Polygon => sdf::polygon(p, [p0, p1, p2, p3, p4]),
-        Cross => sdf::cross(p, dim),
+        Cross => sdf::cross(p, dim2),
     };
 
     let mut d = {

@@ -6,6 +6,7 @@ use crate::{
     functional::{tuple::*, vec::*},
     SQRT_3,
 };
+use core::f32::consts::PI;
 use spirv_std::glam::{vec2, BVec3, Vec2, Vec2Swizzles};
 #[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
 use spirv_std::num_traits::Float;
@@ -145,4 +146,28 @@ pub fn cross(mut p: Vec2, b: Vec2) -> f32 {
     } else {
         v.length()
     }
+}
+
+pub fn regular_star(mut p: Vec2, r: f32, n: u32, m: f32) -> f32 {
+    let an = PI / (n as f32);
+    let en = PI / (m * (n as f32 - 2.0) + 2.0);
+    let acs = Vec2::from_angle(an);
+    let ecs = Vec2::from_angle(en);
+
+    let (s, c) = (((p.x.atan2(p.y) + PI * 2.0) % (2.0 * an)) - an).sin_cos();
+    p = p.length() * vec2(c, s.abs());
+    p -= r * acs;
+    p += ecs * (-p.dot(ecs)).clamp(0.0, r * acs.y / ecs.y);
+    p.length() * p.x.signum()
+}
+
+pub fn regular_polygon(mut p: Vec2, r: f32, n: u32) -> f32 {
+    let an = PI / (n as f32);
+    let acs = Vec2::from_angle(an);
+
+    let (s, c) = (((p.x.atan2(p.y) + PI * 2.0) % (2.0 * an)) - an).sin_cos();
+    p = p.length() * vec2(c, s.abs());
+    p -= r * acs;
+    p.y += (-p.y).clamp(0.0, r * acs.y);
+    p.length() * p.x.signum()
 }
