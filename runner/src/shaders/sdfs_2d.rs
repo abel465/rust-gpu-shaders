@@ -100,7 +100,7 @@ impl Shape {
             ],
             Triangle => &[[-0.1, -0.2], [0.3, 0.2], [0.2, -0.3]],
             Capsule | LineSegment => &[[-0.1, -0.1], [0.2, 0.1]],
-            Ray => &[[0.0, 0.0]],
+            Ray => &[[0.0, 0.0], [0.25, 0.0]],
             _ => &[],
         }
     }
@@ -426,7 +426,7 @@ fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
         Line => sdf::line(p, Vec2::Y),
         Plane => sdf::plane(p, Vec2::Y),
         LineSegment => sdf::line_segment(p, p0, p1),
-        Ray => sdf::ray(p - p0, Vec2::X),
+        Ray => sdf::ray(p - p0, (p1 - p0).normalize()),
         Hexagon => sdf::hexagon(p, radius),
         Pentagon => sdf::pentagon(p, radius),
         Polygon => sdf::polygon(p, [p0, p1, p2, p3, p4]),
