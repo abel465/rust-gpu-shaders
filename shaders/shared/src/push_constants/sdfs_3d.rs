@@ -34,7 +34,7 @@ impl Shape {
         const R: &'static str = "Radius";
         const W: &'static str = "Width";
         const H: &'static str = "Height";
-        const L: &'static str = "length";
+        const L: &'static str = "Length";
         match self {
             Sphere | Capsule | Cylinder => &[R],
             Cuboid => &[W, H, L],
