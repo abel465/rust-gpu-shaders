@@ -42,6 +42,7 @@ pub enum Shape {
     Polygon,
     Cross,
     SierpinskiTriangle,
+    KochSnowflake,
 }
 
 impl Shape {
@@ -52,7 +53,7 @@ impl Shape {
         const H: &'static str = "Height";
         match self {
             Disk | Capsule | Hexagon | Pentagon | EquilateralTriangle => &[R],
-            SierpinskiTriangle => &[R, "N"],
+            SierpinskiTriangle | KochSnowflake => &[R, "N"],
             Rectangle | IsoscelesTriangle => &[W, H],
             Torus => &["Major Radius", "Minor Radius"],
             Cross => &["Length", "Thickness"],
@@ -65,6 +66,7 @@ impl Shape {
         match self {
             Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.0..=0.5],
             SierpinskiTriangle => &[0.0..=2.0 / 3.0, 0.0..=10.0],
+            KochSnowflake => &[0.0..=0.5, 0.0..=5.0],
             Rectangle => &[0.0..=1.0, 0.0..=1.0],
             IsoscelesTriangle => &[0.0..=1.0, -0.5..=0.5],
             Torus => &[0.0..=0.5, 0.0..=0.2],
@@ -78,6 +80,7 @@ impl Shape {
         match self {
             Disk | Capsule | EquilateralTriangle | Hexagon | Pentagon => &[0.2],
             SierpinskiTriangle => &[0.5, 5.0],
+            KochSnowflake => &[0.4, 2.0],
             Rectangle | IsoscelesTriangle => &[0.4, 0.3],
             Torus => &[0.2, 0.1],
             Cross => &[0.35, 0.1],
@@ -105,7 +108,7 @@ impl Shape {
     fn num_integer_dims(&self) -> usize {
         use Shape::*;
         match self {
-            SierpinskiTriangle => 1,
+            SierpinskiTriangle | KochSnowflake => 1,
             _ => 0,
         }
     }
@@ -412,6 +415,7 @@ fn sdf(mut p: Vec2, shape: Shape, params: Params) -> f32 {
         Disk => sdf::disk(p, radius),
         Rectangle => sdf::rectangle(p, dim),
         EquilateralTriangle => sdf::equilateral_triangle(p, radius),
+        KochSnowflake => sdf::fractal::koch_snowflake(p, radius, dim.y as u32),
         SierpinskiTriangle => {
             sdf::fractal::sierpinski_triangle(p - vec2(0.0, -radius * 0.25), radius, dim.y as u32)
         }

@@ -1,5 +1,6 @@
 use crate::SQRT_3;
-use spirv_std::glam::{vec3, Vec2};
+use core::f32::consts::PI;
+use spirv_std::glam::{vec2, vec3, Mat2, Vec2};
 #[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
 use spirv_std::num_traits::Float;
 
@@ -23,4 +24,17 @@ pub fn sierpinski_triangle(p: Vec2, r: f32, m: u32) -> f32 {
             (((1.0 - q) * 2.0) % s).min_element() * r * 3.0 / 4.0
         }
     }
+}
+
+// Based on https://www.shadertoy.com/view/NljfRG (sylvain69780 12/05/2022)
+pub fn koch_snowflake(mut p: Vec2, r: f32, n: u32) -> f32 {
+    p = Mat2::from_angle(PI / 3.0) * p.abs() - r * vec2(0.0, 0.5);
+    let rot = Mat2::from_angle(-PI / 6.0);
+    let mut w = rot.x_axis.x * r;
+    for _ in 0..n * 2 + 2 {
+        p = rot * vec2(p.x.abs() - w, -p.y);
+        w /= SQRT_3;
+        p.x += w;
+    }
+    p.y.signum() * (vec2(p.x - p.x.clamp(-w, w), p.y)).length()
 }
