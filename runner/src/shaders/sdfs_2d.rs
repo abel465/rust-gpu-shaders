@@ -28,18 +28,18 @@ use strum::IntoEnumIterator;
 pub enum Shape {
     Disk,
     Rectangle,
-    IsoscelesTriangle,
-    Triangle,
     Torus,
     Plane,
     LineSegment,
     Ray,
+    IsoscelesTriangle,
+    Triangle,
     Polygon,
     Cross,
-    SierpinskiTriangle,
-    KochSnowflake,
     RegularStar,
     RegularPolygon,
+    SierpinskiTriangle,
+    KochSnowflake,
 }
 
 impl Shape {
