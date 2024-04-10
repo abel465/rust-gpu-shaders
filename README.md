@@ -1,6 +1,7 @@
 # Rust GPU Shaders
+![Screenshot](docs/images/screenshot_sdfs_2d.jpg)
 
-A collection of shader programs
+A collection of interactive graphics programs
 
 ## Usage
 
