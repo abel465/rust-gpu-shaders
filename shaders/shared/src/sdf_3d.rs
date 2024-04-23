@@ -28,6 +28,16 @@ pub fn disk(p: Vec3, r: Vec2, n: Vec3) -> f32 {
         - r.y
 }
 
+// `d` must be normalized
+pub fn ray(p: Vec3, d: Vec3) -> f32 {
+    p.distance(d * p.dot(d).max(0.0))
+}
+
+// `d` must be normalized
+pub fn finite_ray(p: Vec3, d: Vec3, m: f32) -> f32 {
+    p.distance(d * p.dot(d).clamp(0.0, m))
+}
+
 pub fn sphere(p: Vec3, r: f32) -> f32 {
     p.length() - r
 }
