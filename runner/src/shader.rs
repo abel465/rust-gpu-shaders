@@ -47,7 +47,10 @@ pub fn maybe_watch(
         // rustc_codegen_spirv normally, so we *want* to build into a separate target directory, to
         // not have to rebuild half the crate graph every time we run. So, pretend we're running
         // under cargo by setting these environment variables.
-        std::env::set_var("OUT_DIR", env!("OUT_DIR"));
+        std::env::set_var(
+            "OUT_DIR",
+            option_env!("SHADERS_TARGET_DIR").unwrap_or(env!("OUT_DIR")),
+        );
         std::env::set_var("PROFILE", env!("PROFILE"));
         let crate_name = match options.shader {
             RustGPUShader::Mandelbrot => "mandelbrot",
@@ -62,7 +65,7 @@ pub fn maybe_watch(
             RustGPUShader::SphericalHarmonicsShape => "spherical-harmonics-shape",
             RustGPUShader::FunRepDemo => "fun-rep-demo",
         };
-        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let manifest_dir = option_env!("SHADERS_DIR").unwrap_or(env!("CARGO_MANIFEST_DIR"));
         let crate_path = [manifest_dir, "..", "shaders", crate_name]
             .iter()
             .copied()
