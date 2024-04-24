@@ -64,7 +64,8 @@
         '';
       };
       packages.default = pkgs.writeShellScriptBin "rust-gpu-shaders" ''
-        CARGO_TARGET_DIR=${shadersCompilePath} ${rustGpuShaders}/bin/runner
+        export CARGO_TARGET_DIR="${shadersCompilePath}"
+        exec -a "$0" "${rustGpuShaders}/bin/runner" "$@"
       '';
       apps.default = {
         type = "app";
