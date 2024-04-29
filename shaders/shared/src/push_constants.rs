@@ -9,6 +9,7 @@ pub mod koch_snowflake;
 pub mod mandelbrot;
 pub mod ray_marching;
 pub mod ray_marching_2d;
+pub mod sdf_builder;
 pub mod sdfs_2d;
 pub mod sdfs_3d;
 pub mod sierpinski_triangle;
@@ -28,6 +29,7 @@ pub fn largest_size() -> usize {
         .max(size_of::<spherical_harmonics::ShaderConstants>())
         .max(size_of::<spherical_harmonics_shape::ShaderConstants>())
         .max(size_of::<fun_rep_demo::ShaderConstants>())
+        .max(size_of::<sdf_builder::ShaderConstants>())
 }
 
 #[derive(Copy, Clone, Pod, Zeroable)]

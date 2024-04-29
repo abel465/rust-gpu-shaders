@@ -14,6 +14,7 @@ members = [
   "shaders/spherical-harmonics",
   "shaders/spherical-harmonics-shape",
   "shaders/fun-rep-demo",
+  "shaders/sdf-builder",
 ]
 default-members = ["runner"]
 
