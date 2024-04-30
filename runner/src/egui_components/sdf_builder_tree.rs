@@ -96,6 +96,12 @@ enum Command {
         target_position_index: usize,
     },
 
+    /// Edit the selected item.
+    EditItem { item: Item, item_id: ItemId },
+
+    /// Remove the selected item.
+    RemoveItem { item_id: ItemId },
+
     /// Specify the currently identified target container to be highlighted.
     HighlightTargetContainer(ItemId),
 }
@@ -152,6 +158,8 @@ impl Default for SdfBuilderTree {
 //
 impl SdfBuilderTree {
     fn populate(&mut self) {
+        let disk = Shape::Disk(Disk::new(0.3));
+        self.add_leaf(self.root_id, disk);
         let torus = Shape::Torus(Torus::new(0.25, 0.1));
         self.add_leaf(self.root_id, torus);
     }
@@ -222,6 +230,37 @@ impl SdfBuilderTree {
         }
     }
 
+    /// Edit item `item_id`.
+    fn edit_item(&mut self, item: Item, item_id: ItemId) {
+        println!("Editing {item_id:?}");
+
+        *self.items.get_mut(&item_id).unwrap() = item;
+    }
+
+    /// Remove item `item_id`.
+    fn remove_item(&mut self, item_id: ItemId) {
+        println!("Removing {item_id:?}");
+
+        let item = self.items.get(&item_id).unwrap();
+        match item {
+            Item::Operator(_, items) => {
+                for id in items {
+                    self.send_command(Command::RemoveItem { item_id: *id })
+                }
+            }
+            Item::Shape(_) => {}
+        }
+        if let Some((id, pos)) = self.parent_and_pos(item_id) {
+            match self.items.get_mut(&id).unwrap() {
+                Item::Operator(_, items) => {
+                    items.remove(pos);
+                }
+                Item::Shape(_) => {}
+            }
+        }
+        self.items.remove(&item_id);
+    }
+
     /// Find the parent of an item, and the index of that item within the parent's children.
     fn parent_and_pos(&self, id: ItemId) -> Option<(ItemId, usize)> {
         if id == self.root_id {
@@ -286,11 +325,20 @@ impl SdfBuilderTree {
         for shape in Shape::iter() {
             let item0 = Item::Shape(shape);
             let label: &str = shape.into();
-            let response = ui.add(
-                egui::Label::new(label)
-                    .selectable(false)
-                    .sense(egui::Sense::click_and_drag()),
-            );
+            let response = egui::Frame::none()
+                .stroke(egui::Stroke {
+                    width: 4.0,
+                    color: egui::Color32::DARK_GRAY,
+                })
+                .inner_margin(egui::Margin::same(5.0))
+                .show(ui, |ui| {
+                    ui.add(
+                        egui::Label::new(label)
+                            .selectable(false)
+                            .sense(egui::Sense::click_and_drag()),
+                    )
+                })
+                .inner;
             self.handle_drag_and_drop_interaction(
                 ui,
                 ItemId::new(),
@@ -365,6 +413,14 @@ impl SdfBuilderTree {
                     );
                     self.grid_needs_updating = true;
                 }
+                Command::EditItem { item, item_id } => {
+                    self.edit_item(item, item_id);
+                    self.grid_needs_updating = true;
+                }
+                Command::RemoveItem { item_id } => {
+                    self.remove_item(item_id);
+                    self.grid_needs_updating = true;
+                }
                 Command::HighlightTargetContainer(item_id) => {
                     self.target_container = Some(item_id);
                 }
@@ -386,11 +442,17 @@ impl SdfBuilderTree {
                 true,
             )
             .show_header(ui, |ui| {
-                ui.add(
+                let ret = ui.add(
                     egui::Label::new(format!("{operator:?}"))
                         .selectable(false)
                         .sense(egui::Sense::click_and_drag()),
-                )
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                    if ui.button("x").clicked() {
+                        self.send_command(Command::RemoveItem { item_id });
+                    };
+                });
+                ret
             })
             .body(|ui| {
                 self.container_children_ui(ui, children);
@@ -440,11 +502,84 @@ impl SdfBuilderTree {
     }
 
     fn leaf_ui(&self, ui: &mut egui::Ui, item_id: ItemId, shape: &Shape) {
-        let response = ui.add(
-            egui::Label::new(format!("{shape:?}"))
-                .selectable(false)
-                .sense(egui::Sense::click_and_drag()),
-        );
+        let response = egui::Frame::none()
+            .stroke(egui::Stroke {
+                width: 4.0,
+                color: egui::Color32::DARK_GRAY,
+            })
+            .inner_margin(egui::Margin::same(5.0))
+            .show(ui, |ui| {
+                let label: &str = (*shape).into();
+                let ret = ui.horizontal(|ui| {
+                    let ret = ui.add(
+                        egui::Label::new(label)
+                            .selectable(false)
+                            .sense(egui::Sense::click_and_drag()),
+                    );
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                        if ui.button("x").clicked() {
+                            self.send_command(Command::RemoveItem { item_id });
+                        };
+                    });
+                    ret
+                });
+                egui::Grid::new("TextLayoutDemo")
+                    .num_columns(2)
+                    .show(ui, |ui| match shape {
+                        Shape::Disk(disk) => {
+                            let mut disk0 = disk.clone();
+                            ui.label("Radius");
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut disk0.radius)
+                                        .clamp_range(0.0..=1.0)
+                                        .speed(0.01),
+                                )
+                                .changed()
+                            {
+                                self.send_command(Command::EditItem {
+                                    item: Item::Shape(Shape::Disk(disk0)),
+                                    item_id,
+                                });
+                            };
+                        }
+                        Shape::Torus(torus) => {
+                            let mut torus0 = torus.clone();
+                            ui.label("Major Radius");
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut torus0.major_radius)
+                                        .clamp_range(0.0..=1.0)
+                                        .speed(0.01),
+                                )
+                                .changed()
+                            {
+                                self.send_command(Command::EditItem {
+                                    item: Item::Shape(Shape::Torus(torus0)),
+                                    item_id,
+                                });
+                            }
+                            ui.end_row();
+                            ui.label("Minor Radius");
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut torus0.minor_radius)
+                                        .clamp_range(0.0..=1.0)
+                                        .speed(0.01),
+                                )
+                                .changed()
+                            {
+                                self.send_command(Command::EditItem {
+                                    item: Item::Shape(Shape::Torus(torus0)),
+                                    item_id,
+                                });
+                            }
+                        }
+                    });
+                ret
+            })
+            .inner
+            .inner;
 
         if response.clicked() {
             self.send_command(Command::SetSelectedItem(Some(item_id), None));

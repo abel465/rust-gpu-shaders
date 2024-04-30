@@ -1,10 +1,7 @@
 #![cfg_attr(target_arch = "spirv", no_std)]
 
 use dfutils::gridref::*;
-// use dfutils::sdf::*;
 use push_constants::sdf_builder::ShaderConstants;
-// use sdf::grid::SdfGrid;
-// use sdf_2d as sdf;
 use shared::*;
 use spirv_std::glam::*;
 #[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
