@@ -101,53 +101,39 @@ pub enum Instruction {
 impl SdfBuilderTree {
     pub fn generate_instructions(&self) -> Vec<Instruction> {
         let mut instructions = vec![];
-        self.generate_instructions_impl(self.root_id, &mut instructions);
+        self.generate_instructions_impl(&self.root_id, &mut instructions);
         instructions
     }
 
-    fn generate_instructions_impl(&self, id: ItemId, instructions: &mut Vec<Instruction>) -> bool {
-        if let Some(item) = self.items.get(&id) {
+    fn generate_instructions_impl(&self, id: &ItemId, instructions: &mut Vec<Instruction>) -> bool {
+        if let Some(item) = self.items.get(id) {
             match item {
-                Item::Operator(op, items) => match items.len() {
-                    0 => false,
-                    1 => self.generate_instructions_impl(items[0], instructions),
-                    2 => {
-                        let r1 = self.generate_instructions_impl(items[0], instructions);
-                        let r2 = self.generate_instructions_impl(items[1], instructions);
-                        if r1 && r2 {
-                            instructions.push(Instruction::Operator(*op));
-                            true
-                        } else if r1 || r2 {
-                            true
+                Item::Operator(op, ids) => {
+                    let mut items = ids.iter().rev();
+                    let mut r1 = false;
+                    while !r1 {
+                        if let Some(next_id) = items.next() {
+                            r1 = self.generate_instructions_impl(next_id, instructions);
                         } else {
-                            false
+                            return false;
                         }
                     }
-                    _ => {
-                        let mut items = items.clone();
-                        let mut r1 = false;
-                        while !r1 {
-                            if items.is_empty() {
-                                return false;
-                            }
-                            r1 = self.generate_instructions_impl(items.remove(0), instructions);
+                    let mut r2 = false;
+                    while !r2 {
+                        if let Some(next_id) = items.next() {
+                            r2 = self.generate_instructions_impl(next_id, instructions);
+                        } else {
+                            return true;
                         }
-                        let mut r2 = false;
-                        while !r2 {
-                            if items.is_empty() {
-                                return true;
-                            }
-                            r2 = self.generate_instructions_impl(items.remove(0), instructions);
-                        }
-                        instructions.push(Instruction::Operator(*op));
-                        while !items.is_empty() {
-                            if self.generate_instructions_impl(items.remove(0), instructions) {
-                                instructions.push(Instruction::Operator(*op));
-                            }
-                        }
-                        true
                     }
-                },
+                    instructions.push(Instruction::Operator(*op));
+                    for next_id in items {
+                        if self.generate_instructions_impl(next_id, instructions) {
+                            instructions.push(Instruction::Operator(*op));
+                        }
+                    }
+                    true
+                }
                 Item::Shape(shape) => {
                     instructions.push(Instruction::Shape(*shape));
                     true
@@ -293,8 +279,6 @@ impl SdfBuilderTree {
             if source_parent_id == container_id && source_pos < pos {
                 pos -= 1;
             }
-        } else {
-            println!("DSGJOLID");
         }
 
         if let Some(Item::Operator(_, children)) = self.items.get_mut(&container_id) {
