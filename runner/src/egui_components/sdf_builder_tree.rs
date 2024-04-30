@@ -2,6 +2,7 @@ use dfutils::primitives::*;
 use dfutils::sdf::*;
 use egui::NumExt as _;
 use glam::Vec2;
+use shared::interpreter::Stack;
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
@@ -27,7 +28,7 @@ impl From<ItemId> for egui::Id {
 }
 
 #[derive(Clone, Copy, Debug, strum::EnumIter, strum::IntoStaticStr)]
-enum Shape {
+pub enum Shape {
     Disk(Disk),
     Torus(Torus),
 }
@@ -42,9 +43,19 @@ impl Sdf for Shape {
 }
 
 #[derive(Clone, Copy, Debug, strum::EnumIter, strum::IntoStaticStr)]
-enum Operator {
+pub enum Operator {
     Union,
     Intersection,
+}
+
+impl Operator {
+    fn operate(&self, a: f32, b: f32) -> f32 {
+        use Operator::*;
+        match self {
+            Union => a.min(b),
+            Intersection => a.max(b),
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -53,25 +64,97 @@ enum Item {
     Shape(Shape),
 }
 
-impl dfutils::sdf::Sdf for SdfBuilderTree {
+impl dfutils::sdf::Sdf for SdfInstructions {
     fn signed_distance(&self, p: Vec2) -> f32 {
-        let root = self.items.get(&self.root_id);
-        root.map_or(f32::INFINITY, |item| self.item_sdf(item, p))
+        let mut stack = Stack::<2>::new();
+        for bob in &self.instructions {
+            match bob {
+                Instruction::Operator(op) => {
+                    let b = stack.pop();
+                    let a = stack.pop();
+                    stack.push(op.operate(a, b));
+                }
+                Instruction::Shape(shape) => {
+                    stack.push(shape.signed_distance(p));
+                }
+            }
+        }
+        stack.pop()
     }
 }
 
+pub struct SdfInstructions {
+    instructions: Vec<Instruction>,
+}
+
+impl SdfInstructions {
+    pub fn new(instructions: Vec<Instruction>) -> Self {
+        Self { instructions }
+    }
+}
+
+pub enum Instruction {
+    Operator(Operator),
+    Shape(Shape),
+}
+
 impl SdfBuilderTree {
-    fn item_sdf(&self, item: &Item, p: Vec2) -> f32 {
-        match item {
-            Item::Shape(shape) => shape.signed_distance(p),
-            Item::Operator(op, items) => items
-                .iter()
-                .map(|item_id| self.item_sdf(self.items.get(item_id).unwrap(), p))
-                .reduce(|acc, sd| match op {
-                    Operator::Union => acc.min(sd),
-                    Operator::Intersection => acc.max(sd),
-                })
-                .unwrap_or(f32::INFINITY),
+    pub fn generate_instructions(&self) -> Vec<Instruction> {
+        let mut instructions = vec![];
+        self.generate_instructions_impl(self.root_id, &mut instructions);
+        instructions
+    }
+
+    fn generate_instructions_impl(&self, id: ItemId, instructions: &mut Vec<Instruction>) -> bool {
+        if let Some(item) = self.items.get(&id) {
+            match item {
+                Item::Operator(op, items) => match items.len() {
+                    0 => false,
+                    1 => self.generate_instructions_impl(items[0], instructions),
+                    2 => {
+                        let r1 = self.generate_instructions_impl(items[0], instructions);
+                        let r2 = self.generate_instructions_impl(items[1], instructions);
+                        if r1 && r2 {
+                            instructions.push(Instruction::Operator(*op));
+                            true
+                        } else if r1 || r2 {
+                            true
+                        } else {
+                            false
+                        }
+                    }
+                    _ => {
+                        let mut items = items.clone();
+                        let mut r1 = false;
+                        while !r1 {
+                            if items.is_empty() {
+                                return false;
+                            }
+                            r1 = self.generate_instructions_impl(items.remove(0), instructions);
+                        }
+                        let mut r2 = false;
+                        while !r2 {
+                            if items.is_empty() {
+                                return true;
+                            }
+                            r2 = self.generate_instructions_impl(items.remove(0), instructions);
+                        }
+                        instructions.push(Instruction::Operator(*op));
+                        while !items.is_empty() {
+                            if self.generate_instructions_impl(items.remove(0), instructions) {
+                                instructions.push(Instruction::Operator(*op));
+                            }
+                        }
+                        true
+                    }
+                },
+                Item::Shape(shape) => {
+                    instructions.push(Instruction::Shape(*shape));
+                    true
+                }
+            }
+        } else {
+            false
         }
     }
 }

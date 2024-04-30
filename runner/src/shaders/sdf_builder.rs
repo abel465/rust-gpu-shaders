@@ -1,6 +1,6 @@
 use crate::{
     controller::{BindGroupBufferType, BufferData, SSBO},
-    egui_components::sdf_builder_tree::SdfBuilderTree,
+    egui_components::sdf_builder_tree::{SdfBuilderTree, SdfInstructions},
     window::UserEvent,
 };
 use bytemuck::Zeroable;
@@ -32,6 +32,8 @@ impl crate::controller::Controller for Controller {
 
     fn resize(&mut self, size: PhysicalSize<u32>) {
         self.size = size;
+        self.grid
+            .resize(self.size.width as usize, self.size.height as usize);
         self.sdf_builder_tree.grid_needs_updating = true;
     }
 
@@ -53,12 +55,9 @@ impl crate::controller::Controller for Controller {
     fn ui(&mut self, _ctx: &Context, ui: &mut egui::Ui, event_proxy: &EventLoopProxy<UserEvent>) {
         self.sdf_builder_tree.ui(ui);
         if self.sdf_builder_tree.grid_needs_updating {
-            self.grid.resize(
-                self.size.width as usize,
-                self.size.height as usize,
-                &self.sdf_builder_tree,
-            );
-            self.grid.update(&self.sdf_builder_tree);
+            let sdf_instructions =
+                SdfInstructions::new(self.sdf_builder_tree.generate_instructions());
+            self.grid.update(&sdf_instructions);
             if event_proxy.send_event(UserEvent::NewBuffersReady).is_err() {
                 panic!("Event loop dead");
             }
