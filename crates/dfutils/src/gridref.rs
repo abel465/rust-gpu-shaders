@@ -1,6 +1,6 @@
 pub use crate::sdf::Sdf;
 use glam::Vec2;
-#[cfg(feature = "libm")]
+#[cfg(not(feature = "std"))]
 use num_traits::Float;
 
 pub struct GridRef<'a> {

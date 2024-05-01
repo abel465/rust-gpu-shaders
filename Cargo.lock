@@ -562,6 +562,7 @@ dependencies = [
  "glam",
  "num-traits",
  "rayon",
+ "strum",
 ]
 
 [[package]]

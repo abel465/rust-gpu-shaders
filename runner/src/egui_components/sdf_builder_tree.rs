@@ -1,5 +1,4 @@
-use dfutils::primitives::*;
-use dfutils::sdf::*;
+use dfutils::{primitives::*, primitives_enum::Shape};
 use egui::NumExt as _;
 use glam::Vec2;
 use shared::interpreter::Stack;
@@ -24,21 +23,6 @@ impl std::fmt::Debug for ItemId {
 impl From<ItemId> for egui::Id {
     fn from(id: ItemId) -> Self {
         Self::new(id)
-    }
-}
-
-#[derive(Clone, Copy, Debug, strum::EnumIter, strum::IntoStaticStr)]
-pub enum Shape {
-    Disk(Disk),
-    Torus(Torus),
-}
-
-impl Sdf for Shape {
-    fn signed_distance(&self, p: Vec2) -> f32 {
-        match self {
-            Shape::Disk(disk) => disk.signed_distance(p),
-            Shape::Torus(torus) => torus.signed_distance(p),
-        }
     }
 }
 
@@ -638,6 +622,38 @@ impl SdfBuilderTree {
                             {
                                 self.send_command(Command::EditItem {
                                     item: Item::Shape(Shape::Torus(torus0)),
+                                    item_id,
+                                });
+                            }
+                        }
+                        Shape::Rectangle(rectangle) => {
+                            let mut rectangle0 = rectangle.clone();
+                            ui.label("Width");
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut rectangle0.width)
+                                        .clamp_range(0.0..=1.0)
+                                        .speed(0.01),
+                                )
+                                .changed()
+                            {
+                                self.send_command(Command::EditItem {
+                                    item: Item::Shape(Shape::Rectangle(rectangle0)),
+                                    item_id,
+                                });
+                            }
+                            ui.end_row();
+                            ui.label("Height");
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut rectangle0.height)
+                                        .clamp_range(0.0..=1.0)
+                                        .speed(0.01),
+                                )
+                                .changed()
+                            {
+                                self.send_command(Command::EditItem {
+                                    item: Item::Shape(Shape::Rectangle(rectangle0)),
                                     item_id,
                                 });
                             }
