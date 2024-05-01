@@ -1,4 +1,4 @@
-use dfutils::{primitives::*, primitives_enum::Shape};
+use dfutils::primitives_enum::Shape;
 use egui::NumExt as _;
 use glam::Vec2;
 use shared::interpreter::Stack;
@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
 #[derive(Hash, Clone, Copy, PartialEq, Eq)]
-struct ItemId(u32);
+pub struct ItemId(u32);
 
 impl ItemId {
     fn new() -> Self {
@@ -43,7 +43,7 @@ impl Operator {
 }
 
 #[derive(Clone, Debug)]
-enum Item {
+pub enum Item {
     Operator(Operator, Vec<ItemId>),
     Shape(Shape),
 }
@@ -133,7 +133,7 @@ impl SdfBuilderTree {
 }
 
 #[derive(Debug)]
-enum Command {
+pub enum Command {
     /// Set the selected item
     SetSelectedItem(Option<ItemId>, Option<Item>),
 
@@ -170,7 +170,7 @@ pub struct SdfBuilderTree {
     root_id: ItemId,
 
     /// Selected item, if any
-    selected_item: (Option<ItemId>, Option<Item>),
+    pub selected_item: (Option<ItemId>, Option<Item>),
 
     /// If a drag is ongoing, this is the id of the destination container (if any was identified)
     ///
@@ -181,7 +181,7 @@ pub struct SdfBuilderTree {
     command_receiver: std::sync::mpsc::Receiver<Command>,
 
     /// Channel to send commands from the UI
-    command_sender: std::sync::mpsc::Sender<Command>,
+    pub command_sender: std::sync::mpsc::Sender<Command>,
 
     pub grid_needs_updating: bool,
 }
@@ -214,9 +214,12 @@ impl Default for SdfBuilderTree {
 //
 impl SdfBuilderTree {
     fn populate(&mut self) {
-        let rectangle = Shape::Rectangle(Rectangle::default());
-        self.add_leaf(self.root_id, rectangle);
+        self.add_leaf(self.root_id, Shape::Disk(Default::default()));
     }
+
+    // pub fn get_selected_item(&self) -> Option<&Item> {
+    //     self.selected_item.and_then(|id| self.items.get(&id))
+    // }
 
     fn container(&self, id: ItemId) -> Option<&Vec<ItemId>> {
         match self.items.get(&id) {
@@ -699,7 +702,10 @@ impl SdfBuilderTree {
             .inner;
 
         if response.clicked() {
-            self.send_command(Command::SetSelectedItem(Some(item_id), None));
+            self.send_command(Command::SetSelectedItem(
+                Some(item_id),
+                Some(Item::Shape(shape.clone())),
+            ));
         }
 
         self.handle_drag_and_drop_interaction(ui, item_id, false, &response, None, None);
