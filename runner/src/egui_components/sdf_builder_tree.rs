@@ -211,10 +211,8 @@ impl Default for SdfBuilderTree {
 //
 impl SdfBuilderTree {
     fn populate(&mut self) {
-        let disk = Shape::Disk(Disk::new(0.3));
-        self.add_leaf(self.root_id, disk);
-        let torus = Shape::Torus(Torus::new(0.25, 0.1));
-        self.add_leaf(self.root_id, torus);
+        let rectangle = Shape::Rectangle(Rectangle::default());
+        self.add_leaf(self.root_id, rectangle);
     }
 
     fn container(&self, id: ItemId) -> Option<&Vec<ItemId>> {
@@ -658,6 +656,39 @@ impl SdfBuilderTree {
                                 });
                             }
                         }
+                        Shape::Cross(cross) => {
+                            let mut cross0 = cross.clone();
+                            ui.label("Length");
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut cross0.length)
+                                        .clamp_range(0.0..=1.0)
+                                        .speed(0.01),
+                                )
+                                .changed()
+                            {
+                                self.send_command(Command::EditItem {
+                                    item: Item::Shape(Shape::Cross(cross0)),
+                                    item_id,
+                                });
+                            }
+                            ui.end_row();
+                            ui.label("Thickness");
+                            if ui
+                                .add(
+                                    egui::DragValue::new(&mut cross0.thickness)
+                                        .clamp_range(0.0..=cross0.length)
+                                        .speed(0.01),
+                                )
+                                .changed()
+                            {
+                                self.send_command(Command::EditItem {
+                                    item: Item::Shape(Shape::Cross(cross0)),
+                                    item_id,
+                                });
+                            }
+                        }
+                        Shape::LineSegment(_) => {}
                     });
                 ret
             })
