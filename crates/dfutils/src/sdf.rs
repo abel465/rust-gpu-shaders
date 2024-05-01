@@ -9,11 +9,10 @@ pub trait Sdf {
         self.signed_distance(p).abs()
     }
 
-    fn derivative(&self, p: Vec2) -> Vec2 {
-        const H: f32 = 0.001;
+    fn derivative(&self, p: Vec2, h: f32) -> Vec2 {
         vec2(
-            self.signed_distance(p + H * Vec2::X) - self.signed_distance(p - H * Vec2::X),
-            self.signed_distance(p + H * Vec2::Y) - self.signed_distance(p - H * Vec2::Y),
-        ) / (2.0 * H)
+            self.signed_distance(p + h * Vec2::X) - self.signed_distance(p - h * Vec2::X),
+            self.signed_distance(p + h * Vec2::Y) - self.signed_distance(p - h * Vec2::Y),
+        ) / (2.0 * h)
     }
 }

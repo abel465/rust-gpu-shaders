@@ -250,7 +250,7 @@ impl Controller {
     fn derivative(&self) -> Vec2 {
         if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
             match item {
-                Item::Shape(shape) => shape.derivative(self.cursor_from_pixels()),
+                Item::Shape(shape) => shape.derivative(self.cursor_from_pixels(), 0.01),
                 _ => Vec2::ZERO,
             }
         } else {
