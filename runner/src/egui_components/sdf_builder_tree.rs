@@ -50,6 +50,9 @@ enum Item {
 
 impl dfutils::sdf::Sdf for SdfInstructions {
     fn signed_distance(&self, p: Vec2) -> f32 {
+        if self.instructions.is_empty() {
+            return f32::INFINITY;
+        }
         let mut stack = Stack::<8>::new();
         for bob in &self.instructions {
             match bob {
