@@ -22,4 +22,15 @@ impl Sdf for Shape {
             LineSegment(line_segment) => line_segment.signed_distance(p),
         }
     }
+
+    fn distance(&self, p: Vec2) -> f32 {
+        use Shape::*;
+        match self {
+            Disk(disk) => disk.distance(p),
+            Torus(torus) => torus.distance(p),
+            Rectangle(rectangle) => rectangle.distance(p),
+            Cross(cross) => cross.distance(p),
+            LineSegment(line_segment) => line_segment.distance(p),
+        }
+    }
 }
