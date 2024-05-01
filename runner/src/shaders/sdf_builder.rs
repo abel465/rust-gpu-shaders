@@ -6,9 +6,13 @@ use crate::{
 use bytemuck::Zeroable;
 use dfutils::grid::*;
 use egui::Context;
-use egui_winit::winit::{dpi::PhysicalSize, event_loop::EventLoopProxy};
+use egui_winit::winit::{
+    dpi::{PhysicalPosition, PhysicalSize},
+    event::{ElementState, MouseButton},
+    event_loop::EventLoopProxy,
+};
 use glam::*;
-use shared::push_constants::sdf_builder::ShaderConstants;
+use shared::{from_pixels, push_constants::sdf_builder::ShaderConstants};
 use std::time::Instant;
 
 pub struct Controller {
@@ -17,6 +21,8 @@ pub struct Controller {
     shader_constants: ShaderConstants,
     grid: Grid,
     sdf_builder_tree: SdfBuilderTree,
+    cursor: Vec2,
+    mouse_button_pressed: bool,
 }
 
 impl crate::controller::Controller for Controller {
@@ -27,6 +33,8 @@ impl crate::controller::Controller for Controller {
             shader_constants: ShaderConstants::zeroed(),
             grid: Grid::new(size.width as usize, size.height as usize),
             sdf_builder_tree: SdfBuilderTree::default(),
+            cursor: Vec2::ZERO,
+            mouse_button_pressed: false,
         }
     }
 
@@ -37,10 +45,25 @@ impl crate::controller::Controller for Controller {
         self.sdf_builder_tree.grid_needs_updating = true;
     }
 
+    fn mouse_move(&mut self, position: PhysicalPosition<f64>) {
+        self.cursor = vec2(position.x as f32, position.y as f32);
+    }
+
+    fn mouse_input(&mut self, state: ElementState, button: MouseButton) {
+        if button == MouseButton::Left {
+            self.mouse_button_pressed = match state {
+                ElementState::Pressed => true,
+                ElementState::Released => false,
+            }
+        }
+    }
+
     fn update(&mut self) {
         self.shader_constants = ShaderConstants {
             size: self.size.into(),
             time: self.start.elapsed().as_secs_f32(),
+            mouse_button_pressed: self.mouse_button_pressed.into(),
+            cursor: from_pixels(self.cursor, self.size.into()).into(),
         }
     }
 
