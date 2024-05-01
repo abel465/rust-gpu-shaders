@@ -27,7 +27,7 @@ egui = "0.27.2"
 egui-wgpu = "0.27.2"
 egui-winit = "0.27.2"
 glam = "0.25"
-dfutils = { path = "../../dfutils", features = ["std"], default_features = false }
+dfutils = { path = "../crates/dfutils" }
 rand = "0.8.5"
 
 [target.'cfg(not(any(target_arch = "wasm32")))'.dependencies]

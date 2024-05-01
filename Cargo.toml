@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "runner",
   "runner/builder",
+  "crates/dfutils",
   "shaders/mandelbrot",
   "shaders/ray-marching",
   "shaders/ray-marching-2d",

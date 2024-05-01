@@ -11,7 +11,7 @@ crate-type = ["dylib"]
 
 [dependencies]
 spirv-std = { workspace = true }
-dfutils = { path = "../../../dfutils", default-features = false, features = [
+dfutils = { path = "../../crates/dfutils", default-features = false, features = [
   "libm",
 ] }
 
