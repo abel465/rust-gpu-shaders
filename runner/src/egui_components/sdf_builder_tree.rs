@@ -289,7 +289,12 @@ impl SdfBuilderTree {
     fn edit_item(&mut self, item: Item, item_id: ItemId) {
         println!("Editing {item_id:?}");
 
-        *self.items.get_mut(&item_id).unwrap() = item;
+        *self.items.get_mut(&item_id).unwrap() = item.clone();
+        if let Some(id) = self.selected_item.0 {
+            if id == item_id {
+                self.selected_item.1 = Some(item);
+            }
+        }
     }
 
     /// Remove item `item_id`.
@@ -587,7 +592,7 @@ impl SdfBuilderTree {
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut disk0.radius)
-                                        .clamp_range(0.0..=1.0)
+                                        .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
@@ -604,7 +609,7 @@ impl SdfBuilderTree {
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut torus0.major_radius)
-                                        .clamp_range(0.0..=1.0)
+                                        .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
@@ -619,7 +624,7 @@ impl SdfBuilderTree {
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut torus0.minor_radius)
-                                        .clamp_range(0.0..=1.0)
+                                        .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
@@ -636,7 +641,7 @@ impl SdfBuilderTree {
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut rectangle0.width)
-                                        .clamp_range(0.0..=1.0)
+                                        .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
@@ -651,7 +656,7 @@ impl SdfBuilderTree {
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut rectangle0.height)
-                                        .clamp_range(0.0..=1.0)
+                                        .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
@@ -668,7 +673,7 @@ impl SdfBuilderTree {
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut cross0.length)
-                                        .clamp_range(0.0..=1.0)
+                                        .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()

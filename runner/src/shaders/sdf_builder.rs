@@ -82,28 +82,32 @@ impl crate::controller::Controller for Controller {
                     Shape::Disk(disk) => {
                         let s = (cursor - position) * derivative;
                         if let Some(item_id) = self.sdf_builder_tree.selected_item.0 {
+                            let item = Item::Shape(Shape::Disk(Disk::new(
+                                (disk.radius + s.x + s.y).max(0.0),
+                            )));
                             self.sdf_builder_tree
                                 .command_sender
-                                .send(Command::EditItem {
-                                    item: Item::Shape(Shape::Disk(Disk::new(
-                                        (disk.radius + s.x + s.y).max(0.0),
-                                    ))),
-                                    item_id,
-                                })
+                                .send(Command::EditItem { item, item_id })
                                 .ok();
                         }
                     }
                     Shape::Rectangle(rectangle) => {
-                        let s = (cursor - position) * derivative;
+                        let scale = {
+                            let Vec2 { x, y } = derivative;
+                            vec2(
+                                if x > 0.05 { x.signum() } else { x },
+                                if y > 0.05 { y.signum() } else { y },
+                            ) * 2.0
+                        };
+                        let s = (cursor - position) * scale;
                         if let Some(item_id) = self.sdf_builder_tree.selected_item.0 {
+                            let item = Item::Shape(Shape::Rectangle(Rectangle::new(
+                                (rectangle.width + s.x).max(0.0),
+                                (rectangle.height + s.y).max(0.0),
+                            )));
                             self.sdf_builder_tree
                                 .command_sender
-                                .send(Command::EditItem {
-                                    item: Item::Shape(Shape::Disk(Disk::new(
-                                        (rectangle.width + s.x + s.y).max(0.0),
-                                    ))),
-                                    item_id,
-                                })
+                                .send(Command::EditItem { item, item_id })
                                 .ok();
                         }
                     }
