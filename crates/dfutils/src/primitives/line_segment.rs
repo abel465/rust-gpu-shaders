@@ -36,4 +36,8 @@ impl Sdf for LineSegment {
         let b = self.b - self.a;
         p.distance(self.a + b * ((p - self.a).dot(b) / b.length_squared()).clamp(0.0, 1.0))
     }
+
+    fn distance(&self, p: Vec2) -> f32 {
+        self.signed_distance(p)
+    }
 }

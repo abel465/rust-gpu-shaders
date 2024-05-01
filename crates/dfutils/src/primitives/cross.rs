@@ -1,5 +1,7 @@
 use crate::sdf::Sdf;
 use glam::*;
+#[cfg(not(feature = "std"))]
+use num_traits::Float;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Cross {
@@ -16,8 +18,8 @@ impl Cross {
 impl Default for Cross {
     fn default() -> Self {
         Self {
-            length: 0.4,
-            thickness: 0.2,
+            length: 0.3,
+            thickness: 0.1,
         }
     }
 }
@@ -34,6 +36,22 @@ impl Sdf for Cross {
             (-u.length()).max(v.x)
         } else if v.x < 0.0 || v.y < 0.0 {
             v.max_element()
+        } else {
+            v.length()
+        }
+    }
+
+    fn distance(&self, mut p: Vec2) -> f32 {
+        p = p.abs();
+        if p.y > p.x {
+            p = p.yx()
+        }
+        let u = p - self.thickness;
+        let v = p - vec2(self.length, self.thickness);
+        if u.x < 0.0 {
+            u.length().min(-v.x)
+        } else if v.x < 0.0 || v.y < 0.0 {
+            v.max_element().abs()
         } else {
             v.length()
         }

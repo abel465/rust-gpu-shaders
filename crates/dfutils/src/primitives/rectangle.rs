@@ -27,4 +27,9 @@ impl Sdf for Rectangle {
         let p = p.abs() - vec2(self.width, self.height) * 0.5;
         p.max(Vec2::ZERO).length() + p.min(Vec2::ZERO).max_element()
     }
+
+    fn distance(&self, p: Vec2) -> f32 {
+        let p = p.abs() - vec2(self.width, self.height) * 0.5;
+        p.max(Vec2::ZERO).length() - p.min(Vec2::ZERO).max_element()
+    }
 }
