@@ -1,7 +1,10 @@
+use crate::primitives::*;
+use crate::primitives_enum::Shape;
 use glam::{vec2, Vec2};
 #[cfg(not(feature = "std"))]
 use num_traits::Float;
 
+#[enum_dispatch::enum_dispatch]
 pub trait Sdf {
     fn signed_distance(&self, p: Vec2) -> f32;
 
