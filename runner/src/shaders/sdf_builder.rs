@@ -4,7 +4,7 @@ use crate::{
     window::UserEvent,
 };
 use bytemuck::Zeroable;
-use dfutils::{grid::*, primitives::*, primitives_enum::Shape, sdf::Sdf};
+use dfutils::{grid::*, primitives_enum::Shape, sdf::Sdf};
 use egui::{Context, CursorIcon};
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -75,66 +75,66 @@ impl crate::controller::Controller for Controller {
                 derivative,
             }),
             Some(item),
-        ) = (self.grabbing, &self.original_selected_item)
-        {
+            Some(item_id),
+        ) = (
+            self.grabbing,
+            &self.original_selected_item,
+            self.sdf_builder_tree.selected_item.0,
+        ) {
             match item {
                 Item::Shape(shape) => match shape {
-                    Shape::Disk(disk) => {
-                        if let Some(item_id) = self.sdf_builder_tree.selected_item.0 {
-                            let s = (cursor - position) * derivative;
-                            let item = Item::Shape(Shape::Disk(Disk::new(
-                                (disk.radius + s.x + s.y).max(0.0),
-                            )));
-                            self.sdf_builder_tree
-                                .command_sender
-                                .send(Command::EditItem { item, item_id })
-                                .ok();
-                        }
+                    Shape::Disk(mut disk) => {
+                        let s = (cursor - position) * derivative;
+                        disk.radius = (disk.radius + s.x + s.y).max(0.0);
+                        self.sdf_builder_tree
+                            .command_sender
+                            .send(Command::EditItem {
+                                item: Shape::Disk(disk).into(),
+                                item_id,
+                            })
+                            .ok();
                     }
-                    Shape::Rectangle(rectangle) => {
-                        if let Some(item_id) = self.sdf_builder_tree.selected_item.0 {
-                            let scale = {
-                                let Vec2 { x, y } = derivative;
-                                vec2(
-                                    if x > 0.05 { x.signum() } else { x },
-                                    if y > 0.05 { y.signum() } else { y },
-                                ) * 2.0
-                            };
-                            let s = (cursor - position) * scale;
-                            let item = Item::Shape(Shape::Rectangle(Rectangle::new(
-                                (rectangle.width + s.x).max(0.0),
-                                (rectangle.height + s.y).max(0.0),
-                            )));
-                            self.sdf_builder_tree
-                                .command_sender
-                                .send(Command::EditItem { item, item_id })
-                                .ok();
-                        }
+                    Shape::Rectangle(mut rectangle) => {
+                        let scale = {
+                            let Vec2 { x, y } = derivative;
+                            vec2(
+                                if x > 0.05 { x.signum() } else { x },
+                                if y > 0.05 { y.signum() } else { y },
+                            ) * 2.0
+                        };
+                        let s = (cursor - position) * scale;
+                        rectangle.width = (rectangle.width + s.x).max(0.0);
+                        rectangle.height = (rectangle.height + s.y).max(0.0);
+                        self.sdf_builder_tree
+                            .command_sender
+                            .send(Command::EditItem {
+                                item: Shape::Rectangle(rectangle).into(),
+                                item_id,
+                            })
+                            .ok();
                     }
                     Shape::Cross(mut cross) => {
-                        if let Some(item_id) = self.sdf_builder_tree.selected_item.0 {
-                            let s = (cursor - position) * derivative;
-                            if position.abs().max_element() < cross.length - 0.01 {
-                                cross.thickness = (cross.thickness + s.x + s.y).max(0.0);
-                            } else if derivative.x.abs() > 0.05 && derivative.y.abs() > 0.05 {
-                                let mut s = (cursor - position) * derivative.signum();
-                                if position.y.abs() > position.x.abs() {
-                                    s = s.yx();
-                                }
-                                let length = (cross.length + s.x).max(0.0);
-                                cross.length = length;
-                                cross.thickness = (cross.thickness + s.y).clamp(0.0, length);
-                            } else {
-                                cross.length = (cross.length + s.x + s.y).max(0.0);
+                        let s = (cursor - position) * derivative;
+                        if position.abs().max_element() < cross.length - 0.01 {
+                            cross.thickness = (cross.thickness + s.x + s.y).max(0.0);
+                        } else if derivative.x.abs() > 0.05 && derivative.y.abs() > 0.05 {
+                            let mut s = (cursor - position) * derivative.signum();
+                            if position.y.abs() > position.x.abs() {
+                                s = s.yx();
                             }
-                            self.sdf_builder_tree
-                                .command_sender
-                                .send(Command::EditItem {
-                                    item: Item::Shape(Shape::Cross(cross)),
-                                    item_id,
-                                })
-                                .ok();
+                            let length = (cross.length + s.x).max(0.0);
+                            cross.length = length;
+                            cross.thickness = (cross.thickness + s.y).clamp(0.0, length);
+                        } else {
+                            cross.length = (cross.length + s.x + s.y).max(0.0);
                         }
+                        self.sdf_builder_tree
+                            .command_sender
+                            .send(Command::EditItem {
+                                item: Shape::Cross(cross).into(),
+                                item_id,
+                            })
+                            .ok();
                     }
                     _ => {}
                 },
@@ -148,8 +148,10 @@ impl crate::controller::Controller for Controller {
             self.mouse_button_pressed = match state {
                 ElementState::Pressed => {
                     if self.can_grab {
-                        self.grabbing =
-                            Some(Grabbing::new(self.cursor_from_pixels(), self.derivative()));
+                        self.grabbing = Some(Grabbing::new(
+                            self.cursor_from_pixels(),
+                            self.derivative_at_cursor(),
+                        ));
                         self.can_grab = false;
                         self.original_selected_item = self.sdf_builder_tree.selected_item.1.clone();
                     }
@@ -185,33 +187,14 @@ impl crate::controller::Controller for Controller {
             ctx.set_cursor_icon(CursorIcon::Grabbing);
         } else if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
             match item {
-                Item::Shape(shape) => match shape {
-                    Shape::Disk(disk) => {
-                        if disk.distance(self.cursor_from_pixels()) < 0.01 {
-                            ctx.set_cursor_icon(CursorIcon::Grab);
-                            self.can_grab = true;
-                        } else {
-                            self.can_grab = false;
-                        }
+                Item::Shape(shape) => {
+                    self.can_grab = if shape.distance(self.cursor_from_pixels()) < 0.01 {
+                        ctx.set_cursor_icon(CursorIcon::Grab);
+                        true
+                    } else {
+                        false
                     }
-                    Shape::Rectangle(rectangle) => {
-                        if rectangle.distance(self.cursor_from_pixels()) < 0.01 {
-                            ctx.set_cursor_icon(CursorIcon::Grab);
-                            self.can_grab = true;
-                        } else {
-                            self.can_grab = false;
-                        }
-                    }
-                    Shape::Cross(cross) => {
-                        if cross.distance(self.cursor_from_pixels()) < 0.01 {
-                            ctx.set_cursor_icon(CursorIcon::Grab);
-                            self.can_grab = true;
-                        } else {
-                            self.can_grab = false;
-                        }
-                    }
-                    _ => {}
-                },
+                }
                 _ => {}
             }
         } else {
@@ -247,7 +230,7 @@ impl Controller {
         from_pixels(self.cursor, self.size.into())
     }
 
-    fn derivative(&self) -> Vec2 {
+    fn derivative_at_cursor(&self) -> Vec2 {
         if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
             match item {
                 Item::Shape(shape) => shape.derivative(self.cursor_from_pixels(), 0.01),

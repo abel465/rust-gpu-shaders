@@ -48,6 +48,12 @@ pub enum Item {
     Shape(Shape),
 }
 
+impl From<Shape> for Item {
+    fn from(shape: Shape) -> Self {
+        Item::Shape(shape)
+    }
+}
+
 impl dfutils::sdf::Sdf for SdfInstructions {
     fn signed_distance(&self, p: Vec2) -> f32 {
         if self.instructions.is_empty() {
