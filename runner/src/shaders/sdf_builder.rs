@@ -30,6 +30,19 @@ impl Grabbing {
     }
 }
 
+#[derive(PartialEq)]
+enum GrabType {
+    Move,
+    Resize,
+    None,
+}
+
+impl GrabType {
+    fn can_grab(&self) -> bool {
+        *self != Self::None
+    }
+}
+
 pub struct Controller {
     size: PhysicalSize<u32>,
     start: Instant,
@@ -38,7 +51,7 @@ pub struct Controller {
     sdf_builder_tree: SdfBuilderTree,
     cursor: Vec2,
     mouse_button_pressed: bool,
-    can_grab: bool,
+    grab_type: GrabType,
     grabbing: Option<Grabbing>,
     original_selected_item: Option<Item>,
 }
@@ -53,7 +66,7 @@ impl crate::controller::Controller for Controller {
             sdf_builder_tree: SdfBuilderTree::default(),
             cursor: Vec2::ZERO,
             mouse_button_pressed: false,
-            can_grab: false,
+            grab_type: GrabType::None,
             grabbing: None,
             original_selected_item: None,
         }
@@ -81,65 +94,61 @@ impl crate::controller::Controller for Controller {
             &self.original_selected_item,
             self.sdf_builder_tree.selected_item.0,
         ) {
-            match item {
-                Item::Shape(shape) => match shape {
-                    Shape::Disk(mut disk) => {
-                        let s = (cursor - position) * derivative;
-                        disk.radius = (disk.radius + s.x + s.y).max(0.0);
-                        self.sdf_builder_tree
-                            .command_sender
-                            .send(Command::EditItem {
-                                item: Shape::Disk(disk).into(),
-                                item_id,
-                            })
-                            .ok();
-                    }
-                    Shape::Rectangle(mut rectangle) => {
-                        let scale = {
-                            let Vec2 { x, y } = derivative;
-                            vec2(
-                                if x > 0.05 { x.signum() } else { x },
-                                if y > 0.05 { y.signum() } else { y },
-                            ) * 2.0
-                        };
-                        let s = (cursor - position) * scale;
-                        rectangle.width = (rectangle.width + s.x).max(0.0);
-                        rectangle.height = (rectangle.height + s.y).max(0.0);
-                        self.sdf_builder_tree
-                            .command_sender
-                            .send(Command::EditItem {
-                                item: Shape::Rectangle(rectangle).into(),
-                                item_id,
-                            })
-                            .ok();
-                    }
-                    Shape::Cross(mut cross) => {
-                        let s = (cursor - position) * derivative;
-                        if position.abs().max_element() < cross.length - 0.01 {
-                            cross.thickness = (cross.thickness + s.x + s.y).max(0.0);
-                        } else if derivative.x.abs() > 0.05 && derivative.y.abs() > 0.05 {
-                            let mut s = (cursor - position) * derivative.signum();
-                            if position.y.abs() > position.x.abs() {
-                                s = s.yx();
-                            }
-                            let length = (cross.length + s.x).max(0.0);
-                            cross.length = length;
-                            cross.thickness = (cross.thickness + s.y).clamp(0.0, length);
-                        } else {
-                            cross.length = (cross.length + s.x + s.y).max(0.0);
-                        }
-                        self.sdf_builder_tree
-                            .command_sender
-                            .send(Command::EditItem {
-                                item: Shape::Cross(cross).into(),
-                                item_id,
-                            })
-                            .ok();
-                    }
-                    _ => {}
+            let item: Item = match self.grab_type {
+                GrabType::Move => match item {
+                    Item::Shape(shape) => match shape {
+                        Shape::Disk(_) => todo!(),
+                        _ => todo!(),
+                    },
+                    Item::Operator(_, _) => todo!(),
                 },
-                _ => {}
-            }
+                GrabType::Resize => match item {
+                    Item::Shape(shape) => match shape {
+                        Shape::Disk(mut disk) => {
+                            let s = (cursor - position) * derivative;
+                            disk.radius = (disk.radius + s.x + s.y).max(0.0);
+                            Shape::Disk(disk).into()
+                        }
+                        Shape::Rectangle(mut rectangle) => {
+                            let scale = {
+                                let Vec2 { x, y } = derivative;
+                                vec2(
+                                    if x > 0.05 { x.signum() } else { x },
+                                    if y > 0.05 { y.signum() } else { y },
+                                ) * 2.0
+                            };
+                            let s = (cursor - position) * scale;
+                            rectangle.width = (rectangle.width + s.x).max(0.0);
+                            rectangle.height = (rectangle.height + s.y).max(0.0);
+                            Shape::Rectangle(rectangle).into()
+                        }
+                        Shape::Cross(mut cross) => {
+                            let s = (cursor - position) * derivative;
+                            if position.abs().max_element() < cross.length - 0.01 {
+                                cross.thickness = (cross.thickness + s.x + s.y).max(0.0);
+                            } else if derivative.x.abs() > 0.05 && derivative.y.abs() > 0.05 {
+                                let mut s = (cursor - position) * derivative.signum();
+                                if position.y.abs() > position.x.abs() {
+                                    s = s.yx();
+                                }
+                                let length = (cross.length + s.x).max(0.0);
+                                cross.length = length;
+                                cross.thickness = (cross.thickness + s.y).clamp(0.0, length);
+                            } else {
+                                cross.length = (cross.length + s.x + s.y).max(0.0);
+                            }
+                            Shape::Cross(cross).into()
+                        }
+                        _ => todo!(),
+                    },
+                    _ => todo!(),
+                },
+                GrabType::None => unimplemented!(),
+            };
+            self.sdf_builder_tree
+                .command_sender
+                .send(Command::EditItem { item, item_id })
+                .ok();
         }
     }
 
@@ -147,17 +156,17 @@ impl crate::controller::Controller for Controller {
         if button == MouseButton::Left {
             self.mouse_button_pressed = match state {
                 ElementState::Pressed => {
-                    if self.can_grab {
+                    if self.grab_type.can_grab() {
                         self.grabbing = Some(Grabbing::new(
                             self.cursor_from_pixels(),
                             self.derivative_at_cursor(),
                         ));
-                        self.can_grab = false;
                         self.original_selected_item = self.sdf_builder_tree.selected_item.1.clone();
                     }
                     true
                 }
                 ElementState::Released => {
+                    self.grab_type = GrabType::None;
                     self.grabbing = None;
                     false
                 }
@@ -184,21 +193,33 @@ impl crate::controller::Controller for Controller {
 
     fn ui(&mut self, ctx: &Context, ui: &mut egui::Ui, event_proxy: &EventLoopProxy<UserEvent>) {
         if self.grabbing.is_some() {
-            ctx.set_cursor_icon(CursorIcon::Grabbing);
+            match self.grab_type {
+                GrabType::Move => {
+                    ctx.set_cursor_icon(CursorIcon::Grabbing);
+                }
+                GrabType::Resize => {
+                    ctx.set_cursor_icon(CursorIcon::ResizeHorizontal);
+                }
+                GrabType::None => {}
+            }
         } else if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
             match item {
                 Item::Shape(shape) => {
-                    self.can_grab = if shape.distance(self.cursor_from_pixels()) < 0.01 {
+                    let d = shape.signed_distance(self.cursor_from_pixels());
+                    self.grab_type = if d.abs() < 0.01 {
+                        ctx.set_cursor_icon(CursorIcon::ResizeHorizontal);
+                        GrabType::Resize
+                    } else if d < 0.0 {
                         ctx.set_cursor_icon(CursorIcon::Grab);
-                        true
+                        GrabType::Move
                     } else {
-                        false
+                        GrabType::None
                     }
                 }
                 _ => {}
             }
         } else {
-            self.can_grab = false;
+            self.grab_type = GrabType::None;
             ctx.set_cursor_icon(CursorIcon::Default);
         }
 
