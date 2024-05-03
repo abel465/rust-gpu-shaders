@@ -12,8 +12,11 @@ use egui_winit::winit::{
     event_loop::EventLoopProxy,
 };
 use glam::*;
+use resize::Resize;
 use shared::{from_pixels, push_constants::sdf_builder::ShaderConstants};
 use std::time::Instant;
+
+mod resize;
 
 #[derive(Clone, Copy)]
 struct Grabbing {
@@ -103,44 +106,7 @@ impl crate::controller::Controller for Controller {
                     Item::Operator(_, _) => todo!(),
                 },
                 GrabType::Resize => match item {
-                    Item::Shape(shape) => match shape {
-                        Shape::Disk(mut disk) => {
-                            let s = (cursor - position) * derivative;
-                            disk.radius = (disk.radius + s.x + s.y).max(0.0);
-                            Shape::Disk(disk).into()
-                        }
-                        Shape::Rectangle(mut rectangle) => {
-                            let scale = {
-                                let Vec2 { x, y } = derivative;
-                                vec2(
-                                    if x.abs() > 0.05 { x.signum() } else { x },
-                                    if y.abs() > 0.05 { y.signum() } else { y },
-                                ) * 2.0
-                            };
-                            let s = (cursor - position) * scale;
-                            rectangle.width = (rectangle.width + s.x).max(0.0);
-                            rectangle.height = (rectangle.height + s.y).max(0.0);
-                            Shape::Rectangle(rectangle).into()
-                        }
-                        Shape::Cross(mut cross) => {
-                            let s = (cursor - position) * derivative;
-                            if position.abs().max_element() < cross.length - 0.01 {
-                                cross.thickness = (cross.thickness + s.x + s.y).max(0.0);
-                            } else if derivative.x.abs() > 0.05 && derivative.y.abs() > 0.05 {
-                                let mut s = (cursor - position) * derivative.signum();
-                                if position.y.abs() > position.x.abs() {
-                                    s = s.yx();
-                                }
-                                let length = (cross.length + s.x).max(0.0);
-                                cross.length = length;
-                                cross.thickness = (cross.thickness + s.y).clamp(0.0, length);
-                            } else {
-                                cross.length = (cross.length + s.x + s.y).max(0.0);
-                            }
-                            Shape::Cross(cross).into()
-                        }
-                        _ => todo!(),
-                    },
+                    Item::Shape(shape) => shape.resize(position, cursor, derivative).into(),
                     _ => todo!(),
                 },
                 GrabType::None => unimplemented!(),
