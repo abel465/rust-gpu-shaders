@@ -198,7 +198,7 @@ impl crate::controller::Controller for Controller {
                     ctx.set_cursor_icon(CursorIcon::Grabbing);
                 }
                 GrabType::Resize => {
-                    ctx.set_cursor_icon(CursorIcon::ResizeHorizontal);
+                    ctx.set_cursor_icon(self.choose_resize_cursor());
                 }
                 GrabType::None => {}
             }
@@ -207,7 +207,7 @@ impl crate::controller::Controller for Controller {
                 Item::Shape(shape) => {
                     let d = shape.signed_distance(self.cursor_from_pixels());
                     self.grab_type = if d.abs() < 0.01 {
-                        ctx.set_cursor_icon(CursorIcon::ResizeHorizontal);
+                        ctx.set_cursor_icon(self.choose_resize_cursor());
                         GrabType::Resize
                     } else if d < 0.0 {
                         ctx.set_cursor_icon(CursorIcon::Grab);
@@ -259,6 +259,24 @@ impl Controller {
             }
         } else {
             Vec2::ZERO
+        }
+    }
+
+    fn choose_resize_cursor(&self) -> CursorIcon {
+        const H: f32 = 4.0;
+        let d = self.grabbing.map_or(
+            self.derivative_at_cursor(),
+            |Grabbing { derivative, .. }| derivative,
+        );
+        let slope = d.y / d.x;
+        if slope > 1.0 / H && slope < H {
+            CursorIcon::ResizeNeSw
+        } else if slope < -1.0 / H && slope > -H {
+            CursorIcon::ResizeNwSe
+        } else if slope.abs() > 1.0 {
+            CursorIcon::ResizeVertical
+        } else {
+            CursorIcon::ResizeHorizontal
         }
     }
 }
