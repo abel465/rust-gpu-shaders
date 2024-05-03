@@ -113,8 +113,8 @@ impl crate::controller::Controller for Controller {
                             let scale = {
                                 let Vec2 { x, y } = derivative;
                                 vec2(
-                                    if x > 0.05 { x.signum() } else { x },
-                                    if y > 0.05 { y.signum() } else { y },
+                                    if x.abs() > 0.05 { x.signum() } else { x },
+                                    if y.abs() > 0.05 { y.signum() } else { y },
                                 ) * 2.0
                             };
                             let s = (cursor - position) * scale;
