@@ -1,3 +1,4 @@
+use super::shape_ui::ShapeUi;
 use dfutils::primitives_enum::Shape;
 use egui::NumExt as _;
 use glam::Vec2;
@@ -595,117 +596,14 @@ impl SdfBuilderTree {
                 });
                 egui::Grid::new("shape_params_grid")
                     .num_columns(2)
-                    .show(ui, |ui| match shape {
-                        Shape::Disk(mut disk) => {
-                            ui.label("Radius");
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut disk.radius)
-                                        .clamp_range(0.0..=f64::INFINITY)
-                                        .speed(0.01),
-                                )
-                                .changed()
-                            {
-                                self.send_command(Command::EditItem {
-                                    item: Shape::Disk(disk).into(),
-                                    item_id,
-                                });
-                            };
+                    .show(ui, |ui| {
+                        let new_shape = shape.ui(ui);
+                        if shape != new_shape {
+                            self.send_command(Command::EditItem {
+                                item: new_shape.into(),
+                                item_id,
+                            });
                         }
-                        Shape::Torus(mut torus) => {
-                            ui.label("Major Radius");
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut torus.major_radius)
-                                        .clamp_range(0.0..=f64::INFINITY)
-                                        .speed(0.01),
-                                )
-                                .changed()
-                            {
-                                self.send_command(Command::EditItem {
-                                    item: Shape::Torus(torus).into(),
-                                    item_id,
-                                });
-                            }
-                            ui.end_row();
-                            ui.label("Minor Radius");
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut torus.minor_radius)
-                                        .clamp_range(0.0..=torus.major_radius)
-                                        .speed(0.01),
-                                )
-                                .changed()
-                            {
-                                self.send_command(Command::EditItem {
-                                    item: Shape::Torus(torus).into(),
-                                    item_id,
-                                });
-                            }
-                        }
-                        Shape::Rectangle(mut rectangle) => {
-                            ui.label("Width");
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut rectangle.width)
-                                        .clamp_range(0.0..=f64::INFINITY)
-                                        .speed(0.01),
-                                )
-                                .changed()
-                            {
-                                self.send_command(Command::EditItem {
-                                    item: Shape::Rectangle(rectangle).into(),
-                                    item_id,
-                                });
-                            }
-                            ui.end_row();
-                            ui.label("Height");
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut rectangle.height)
-                                        .clamp_range(0.0..=f64::INFINITY)
-                                        .speed(0.01),
-                                )
-                                .changed()
-                            {
-                                self.send_command(Command::EditItem {
-                                    item: Shape::Rectangle(rectangle).into(),
-                                    item_id,
-                                });
-                            }
-                        }
-                        Shape::Cross(mut cross) => {
-                            ui.label("Length");
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut cross.length)
-                                        .clamp_range(0.0..=f64::INFINITY)
-                                        .speed(0.01),
-                                )
-                                .changed()
-                            {
-                                self.send_command(Command::EditItem {
-                                    item: Shape::Cross(cross).into(),
-                                    item_id,
-                                });
-                            }
-                            ui.end_row();
-                            ui.label("Thickness");
-                            if ui
-                                .add(
-                                    egui::DragValue::new(&mut cross.thickness)
-                                        .clamp_range(0.0..=cross.length)
-                                        .speed(0.01),
-                                )
-                                .changed()
-                            {
-                                self.send_command(Command::EditItem {
-                                    item: Shape::Cross(cross).into(),
-                                    item_id,
-                                });
-                            }
-                        }
-                        Shape::LineSegment(_) => {}
                     });
                 ret
             })

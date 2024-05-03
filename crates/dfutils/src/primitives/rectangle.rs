@@ -1,7 +1,7 @@
 use crate::sdf::Sdf;
 use glam::{vec2, Vec2};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Rectangle {
     pub width: f32,
     pub height: f32,

@@ -1,7 +1,7 @@
 use crate::sdf::Sdf;
 use glam::Vec2;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Disk {
     pub radius: f32,
 }

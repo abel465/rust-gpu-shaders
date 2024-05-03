@@ -1,7 +1,7 @@
 use crate::sdf::Sdf;
 use glam::{vec2, Vec2};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct LineSegment {
     pub a: Vec2,
     pub b: Vec2,

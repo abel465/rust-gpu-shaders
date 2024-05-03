@@ -2,7 +2,7 @@ use crate::sdf::Sdf;
 use glam::Vec2;
 use super::Disk;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Torus {
     pub major_radius: f32,
     pub minor_radius: f32,

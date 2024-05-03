@@ -18,6 +18,7 @@ use std::time::Instant;
 
 mod resize;
 mod sdf_builder_tree;
+pub mod shape_ui;
 
 #[derive(Clone, Copy)]
 struct Grabbing {
