@@ -1,6 +1,5 @@
 use crate::{
     controller::{BindGroupBufferType, BufferData, SSBO},
-    egui_components::sdf_builder_tree::{Command, Item, SdfBuilderTree, SdfInstructions},
     window::UserEvent,
 };
 use bytemuck::Zeroable;
@@ -13,10 +12,12 @@ use egui_winit::winit::{
 };
 use glam::*;
 use resize::Resize;
+use sdf_builder_tree::{Command, Item, SdfBuilderTree, SdfInstructions};
 use shared::{from_pixels, push_constants::sdf_builder::ShaderConstants};
 use std::time::Instant;
 
 mod resize;
+mod sdf_builder_tree;
 
 #[derive(Clone, Copy)]
 struct Grabbing {
