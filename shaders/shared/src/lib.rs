@@ -5,7 +5,6 @@ pub mod assert;
 pub mod complex;
 pub mod fast_optional;
 pub mod functional;
-pub mod voronoi;
 pub mod interpreter;
 pub mod numeric_integration;
 pub mod push_constants;
@@ -14,6 +13,8 @@ pub mod ray_intersection;
 pub mod sdf_2d;
 pub mod sdf_3d;
 pub mod spherical_harmonics;
+pub mod stack;
+pub mod voronoi;
 
 use push_constants::Size;
 use spirv_std::glam::{vec2, Vec2, Vec4};

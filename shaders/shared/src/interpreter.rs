@@ -1,3 +1,4 @@
+use crate::stack::Stack;
 use bytemuck::{Pod, Zeroable};
 use spirv_std::glam::Vec2;
 #[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
@@ -88,31 +89,6 @@ pub struct OpCodeStruct {
     pub value: f32,
     pub pad1: u32,
     pub pad2: u32,
-}
-
-pub struct Stack<const N: usize> {
-    pub buf: [f32; N],
-    pub sp: usize,
-}
-
-impl<const N: usize> Stack<N> {
-    pub fn new() -> Self {
-        Self {
-            buf: [0.0; N],
-            sp: 0,
-        }
-    }
-    pub fn push(&mut self, x: f32) {
-        self.buf[self.sp] = x;
-        self.sp += 1;
-    }
-    pub fn pop(&mut self) -> f32 {
-        self.sp -= 1;
-        self.buf[self.sp]
-    }
-    pub fn peek(&self) -> f32 {
-        self.buf[self.sp - 1]
-    }
 }
 
 pub struct Interpreter<const STACK_SIZE: usize> {

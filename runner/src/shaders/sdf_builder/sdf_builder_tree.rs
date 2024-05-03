@@ -2,7 +2,7 @@ use super::shape_ui::ShapeUi;
 use dfutils::primitives_enum::Shape;
 use egui::NumExt as _;
 use glam::Vec2;
-use shared::interpreter::Stack;
+use shared::stack::Stack;
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
