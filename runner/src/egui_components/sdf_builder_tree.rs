@@ -31,6 +31,7 @@ pub enum Operator {
     Union,
     Intersection,
     Difference,
+    Xor,
 }
 
 impl Operator {
@@ -40,6 +41,7 @@ impl Operator {
             Union => a.min(b),
             Intersection => a.max(b),
             Difference => b.max(-a),
+            Xor => a.min(b).max(-a.max(b)),
         }
     }
 }
