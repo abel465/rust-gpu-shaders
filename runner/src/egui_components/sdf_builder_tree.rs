@@ -30,6 +30,7 @@ impl From<ItemId> for egui::Id {
 pub enum Operator {
     Union,
     Intersection,
+    Difference,
 }
 
 impl Operator {
@@ -38,6 +39,7 @@ impl Operator {
         match self {
             Union => a.min(b),
             Intersection => a.max(b),
+            Difference => b.max(-a),
         }
     }
 }
