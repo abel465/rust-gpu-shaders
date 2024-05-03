@@ -593,7 +593,7 @@ impl SdfBuilderTree {
                     });
                     ret
                 });
-                egui::Grid::new("TextLayoutDemo")
+                egui::Grid::new("shape_params_grid")
                     .num_columns(2)
                     .show(ui, |ui| match shape {
                         Shape::Disk(mut disk) => {
@@ -607,7 +607,7 @@ impl SdfBuilderTree {
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Disk(disk)),
+                                    item: Shape::Disk(disk).into(),
                                     item_id,
                                 });
                             };
@@ -623,7 +623,7 @@ impl SdfBuilderTree {
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Torus(torus)),
+                                    item: Shape::Torus(torus).into(),
                                     item_id,
                                 });
                             }
@@ -632,13 +632,13 @@ impl SdfBuilderTree {
                             if ui
                                 .add(
                                     egui::DragValue::new(&mut torus.minor_radius)
-                                        .clamp_range(0.0..=f64::INFINITY)
+                                        .clamp_range(0.0..=torus.major_radius)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Torus(torus)),
+                                    item: Shape::Torus(torus).into(),
                                     item_id,
                                 });
                             }
@@ -654,7 +654,7 @@ impl SdfBuilderTree {
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Rectangle(rectangle)),
+                                    item: Shape::Rectangle(rectangle).into(),
                                     item_id,
                                 });
                             }
@@ -669,7 +669,7 @@ impl SdfBuilderTree {
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Rectangle(rectangle)),
+                                    item: Shape::Rectangle(rectangle).into(),
                                     item_id,
                                 });
                             }
@@ -685,7 +685,7 @@ impl SdfBuilderTree {
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Cross(cross)),
+                                    item: Shape::Cross(cross).into(),
                                     item_id,
                                 });
                             }
@@ -700,7 +700,7 @@ impl SdfBuilderTree {
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Cross(cross)),
+                                    item: Shape::Cross(cross).into(),
                                     item_id,
                                 });
                             }
@@ -713,10 +713,7 @@ impl SdfBuilderTree {
             .inner;
 
         if response.clicked() {
-            self.send_command(Command::SetSelectedItem(
-                Some(item_id),
-                Some(Item::Shape(shape.clone())),
-            ));
+            self.send_command(Command::SetSelectedItem(Some(item_id), Some(shape.into())));
         }
 
         self.handle_drag_and_drop_interaction(ui, item_id, false, &response, None, None);

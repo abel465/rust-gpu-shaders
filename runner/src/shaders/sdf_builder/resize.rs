@@ -17,12 +17,11 @@ impl Resize for Torus {
     fn resize(mut self, initial: Vec2, current: Vec2, derivative: Vec2) -> Self {
         let s = (current - initial) * derivative;
         if initial.length() > self.major_radius {
-            self.major_radius = (self.major_radius + s.x + s.y).max(0.0)
+            self.major_radius = (self.major_radius + s.x + s.y).max(0.0);
         } else {
-            self.minor_radius = (self.minor_radius + s.x + s.y)
-                .max(0.0)
-                .min(self.major_radius)
+            self.minor_radius = (self.minor_radius + s.x + s.y).max(0.0);
         }
+        self.minor_radius = self.minor_radius.min(self.major_radius);
         self
     }
 }
@@ -51,12 +50,12 @@ impl Resize for Cross {
             if initial.y.abs() > initial.x.abs() {
                 s = s.yx();
             }
-            let length = (self.length + s.x).max(0.0);
-            self.length = length;
-            self.thickness = (self.thickness + s.y).clamp(0.0, length);
+            self.length = (self.length + s.x).max(0.0);
+            self.thickness = (self.thickness + s.y).max(0.0);
         } else {
             self.length = (self.length + s.x + s.y).max(0.0);
         }
+        self.thickness = self.thickness.min(self.length);
         self
     }
 }
