@@ -564,14 +564,14 @@ impl SdfBuilderTree {
                     self.container_ui(ui, *child_id, operator, children);
                 }
                 Some(Item::Shape(shape)) => {
-                    self.leaf_ui(ui, *child_id, shape);
+                    self.leaf_ui(ui, *child_id, *shape);
                 }
                 None => {}
             }
         }
     }
 
-    fn leaf_ui(&self, ui: &mut egui::Ui, item_id: ItemId, shape: &Shape) {
+    fn leaf_ui(&self, ui: &mut egui::Ui, item_id: ItemId, shape: Shape) {
         let response = egui::Frame::none()
             .stroke(egui::Stroke {
                 width: 4.0,
@@ -579,7 +579,7 @@ impl SdfBuilderTree {
             })
             .inner_margin(egui::Margin::same(5.0))
             .show(ui, |ui| {
-                let label: &str = (*shape).into();
+                let label: &str = shape.into();
                 let ret = ui.horizontal(|ui| {
                     let ret = ui.add(
                         egui::Label::new(label)
@@ -596,36 +596,34 @@ impl SdfBuilderTree {
                 egui::Grid::new("TextLayoutDemo")
                     .num_columns(2)
                     .show(ui, |ui| match shape {
-                        Shape::Disk(disk) => {
-                            let mut disk0 = disk.clone();
+                        Shape::Disk(mut disk) => {
                             ui.label("Radius");
                             if ui
                                 .add(
-                                    egui::DragValue::new(&mut disk0.radius)
+                                    egui::DragValue::new(&mut disk.radius)
                                         .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Disk(disk0)),
+                                    item: Item::Shape(Shape::Disk(disk)),
                                     item_id,
                                 });
                             };
                         }
-                        Shape::Torus(torus) => {
-                            let mut torus0 = torus.clone();
+                        Shape::Torus(mut torus) => {
                             ui.label("Major Radius");
                             if ui
                                 .add(
-                                    egui::DragValue::new(&mut torus0.major_radius)
+                                    egui::DragValue::new(&mut torus.major_radius)
                                         .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Torus(torus0)),
+                                    item: Item::Shape(Shape::Torus(torus)),
                                     item_id,
                                 });
                             }
@@ -633,31 +631,30 @@ impl SdfBuilderTree {
                             ui.label("Minor Radius");
                             if ui
                                 .add(
-                                    egui::DragValue::new(&mut torus0.minor_radius)
+                                    egui::DragValue::new(&mut torus.minor_radius)
                                         .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Torus(torus0)),
+                                    item: Item::Shape(Shape::Torus(torus)),
                                     item_id,
                                 });
                             }
                         }
-                        Shape::Rectangle(rectangle) => {
-                            let mut rectangle0 = rectangle.clone();
+                        Shape::Rectangle(mut rectangle) => {
                             ui.label("Width");
                             if ui
                                 .add(
-                                    egui::DragValue::new(&mut rectangle0.width)
+                                    egui::DragValue::new(&mut rectangle.width)
                                         .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Rectangle(rectangle0)),
+                                    item: Item::Shape(Shape::Rectangle(rectangle)),
                                     item_id,
                                 });
                             }
@@ -665,31 +662,30 @@ impl SdfBuilderTree {
                             ui.label("Height");
                             if ui
                                 .add(
-                                    egui::DragValue::new(&mut rectangle0.height)
+                                    egui::DragValue::new(&mut rectangle.height)
                                         .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Rectangle(rectangle0)),
+                                    item: Item::Shape(Shape::Rectangle(rectangle)),
                                     item_id,
                                 });
                             }
                         }
-                        Shape::Cross(cross) => {
-                            let mut cross0 = cross.clone();
+                        Shape::Cross(mut cross) => {
                             ui.label("Length");
                             if ui
                                 .add(
-                                    egui::DragValue::new(&mut cross0.length)
+                                    egui::DragValue::new(&mut cross.length)
                                         .clamp_range(0.0..=f64::INFINITY)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Cross(cross0)),
+                                    item: Item::Shape(Shape::Cross(cross)),
                                     item_id,
                                 });
                             }
@@ -697,14 +693,14 @@ impl SdfBuilderTree {
                             ui.label("Thickness");
                             if ui
                                 .add(
-                                    egui::DragValue::new(&mut cross0.thickness)
-                                        .clamp_range(0.0..=cross0.length)
+                                    egui::DragValue::new(&mut cross.thickness)
+                                        .clamp_range(0.0..=cross.length)
                                         .speed(0.01),
                                 )
                                 .changed()
                             {
                                 self.send_command(Command::EditItem {
-                                    item: Item::Shape(Shape::Cross(cross0)),
+                                    item: Item::Shape(Shape::Cross(cross)),
                                     item_id,
                                 });
                             }
