@@ -9,6 +9,7 @@ license.workspace = true
 [dependencies]
 spirv-std = { workspace = true }
 bytemuck = { version = "1.15.0", features = ["derive"] }
+dfutils = { path = "../../crates/dfutils", default-features = false }
 
 [target.'cfg(not(any(target_arch = "spirv")))'.dependencies]
 strum = { version = "0.26.2", features = ["derive"] }

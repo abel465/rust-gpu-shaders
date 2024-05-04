@@ -1,8 +1,7 @@
 use super::shape_ui::ShapeUi;
 use dfutils::primitives_enum::Shape;
 use egui::NumExt as _;
-use glam::Vec2;
-use shared::stack::Stack;
+use shared::sdf_interpreter::{Instruction, Operator};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
@@ -27,26 +26,6 @@ impl From<ItemId> for egui::Id {
     }
 }
 
-#[derive(Clone, Copy, Debug, strum::EnumIter, strum::IntoStaticStr)]
-pub enum Operator {
-    Union,
-    Intersection,
-    Difference,
-    Xor,
-}
-
-impl Operator {
-    fn operate(&self, a: f32, b: f32) -> f32 {
-        use Operator::*;
-        match self {
-            Union => a.min(b),
-            Intersection => a.max(b),
-            Difference => b.max(-a),
-            Xor => a.min(b).max(-a.max(b)),
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub enum Item {
     Operator(Operator, Vec<ItemId>),
@@ -57,43 +36,6 @@ impl From<Shape> for Item {
     fn from(shape: Shape) -> Self {
         Item::Shape(shape)
     }
-}
-
-impl dfutils::sdf::Sdf for SdfInstructions {
-    fn signed_distance(&self, p: Vec2) -> f32 {
-        if self.instructions.is_empty() {
-            return f32::INFINITY;
-        }
-        let mut stack = Stack::<8>::new();
-        for bob in &self.instructions {
-            match bob {
-                Instruction::Operator(op) => {
-                    let b = stack.pop();
-                    let a = stack.pop();
-                    stack.push(op.operate(a, b));
-                }
-                Instruction::Shape(shape) => {
-                    stack.push(shape.signed_distance(p));
-                }
-            }
-        }
-        stack.pop()
-    }
-}
-
-pub struct SdfInstructions {
-    instructions: Vec<Instruction>,
-}
-
-impl SdfInstructions {
-    pub fn new(instructions: Vec<Instruction>) -> Self {
-        Self { instructions }
-    }
-}
-
-pub enum Instruction {
-    Operator(Operator),
-    Shape(Shape),
 }
 
 impl SdfBuilderTree {

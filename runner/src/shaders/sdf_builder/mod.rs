@@ -12,8 +12,10 @@ use egui_winit::winit::{
 };
 use glam::*;
 use resize::Resize;
-use sdf_builder_tree::{Command, Item, SdfBuilderTree, SdfInstructions};
-use shared::{from_pixels, push_constants::sdf_builder::ShaderConstants};
+use sdf_builder_tree::{Command, Item, SdfBuilderTree};
+use shared::{
+    from_pixels, push_constants::sdf_builder::ShaderConstants, sdf_interpreter::SdfInstructions,
+};
 use std::time::Instant;
 
 mod resize;
@@ -193,9 +195,8 @@ impl crate::controller::Controller for Controller {
 
         self.sdf_builder_tree.ui(ui);
         if self.sdf_builder_tree.grid_needs_updating {
-            let sdf_instructions =
-                SdfInstructions::new(self.sdf_builder_tree.generate_instructions());
-            self.grid.update(&sdf_instructions);
+            let instructions = self.sdf_builder_tree.generate_instructions();
+            self.grid.update(&SdfInstructions::new(&instructions));
             if event_proxy.send_event(UserEvent::NewBuffersReady).is_err() {
                 panic!("Event loop dead");
             }

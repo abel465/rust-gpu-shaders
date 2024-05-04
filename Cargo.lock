@@ -2191,6 +2191,7 @@ name = "shared"
 version = "0.0.0"
 dependencies = [
  "bytemuck",
+ "dfutils",
  "rayon",
  "spirv-std",
  "strum",
