@@ -16,8 +16,8 @@ impl Rectangle {
 impl Default for Rectangle {
     fn default() -> Self {
         Self {
-            width: 0.3,
-            height: 0.2,
+            width: 0.5,
+            height: 0.3,
         }
     }
 }

@@ -25,8 +25,8 @@ impl LineSegment {
 impl Default for LineSegment {
     fn default() -> Self {
         Self {
-            a: vec2(-0.2, 0.2),
-            b: vec2(0.2, 0.2),
+            a: vec2(-0.2, -0.15),
+            b: vec2(0.2, 0.15),
         }
     }
 }
