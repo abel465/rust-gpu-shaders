@@ -26,6 +26,27 @@ impl Operator {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub struct Transform {
+    pub position: Vec2,
+}
+
+impl core::fmt::Debug for Transform {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Transform")
+            .field("position", &self.position.to_array())
+            .finish()
+    }
+}
+
+impl Default for Transform {
+    fn default() -> Self {
+        Self {
+            position: Vec2::ZERO,
+        }
+    }
+}
+
 pub struct SdfInstructions<'a> {
     instructions: &'a [Instruction],
 }
@@ -38,7 +59,7 @@ impl<'a> SdfInstructions<'a> {
 
 pub enum Instruction {
     Operator(Operator),
-    Shape(Shape),
+    Shape(Shape, Transform),
 }
 
 impl<'a> dfutils::sdf::Sdf for SdfInstructions<'a> {
@@ -54,8 +75,8 @@ impl<'a> dfutils::sdf::Sdf for SdfInstructions<'a> {
                     let a = stack.pop();
                     stack.push(op.operate(a, b));
                 }
-                Instruction::Shape(shape) => {
-                    stack.push(shape.signed_distance(p));
+                Instruction::Shape(shape, Transform { position }) => {
+                    stack.push(shape.signed_distance(p - *position));
                 }
             }
         }

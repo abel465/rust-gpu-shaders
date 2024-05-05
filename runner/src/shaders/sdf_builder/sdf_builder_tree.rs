@@ -1,7 +1,8 @@
 use super::shape_ui::ShapeUi;
 use dfutils::primitives_enum::Shape;
 use egui::{load::SizedTexture, NumExt as _, TextureHandle};
-use shared::sdf_interpreter::{Instruction, Operator};
+use glam::*;
+use shared::sdf_interpreter::{Instruction, Operator, Transform};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
@@ -29,12 +30,12 @@ impl From<ItemId> for egui::Id {
 #[derive(Clone, Debug)]
 pub enum Item {
     Operator(Operator, Vec<ItemId>),
-    Shape(Shape),
+    Shape(Shape, Transform),
 }
 
 impl From<Shape> for Item {
     fn from(shape: Shape) -> Self {
-        Item::Shape(shape)
+        Item::Shape(shape, Default::default())
     }
 }
 
@@ -74,8 +75,8 @@ impl SdfBuilderTree {
                     }
                     true
                 }
-                Item::Shape(shape) => {
-                    instructions.push(Instruction::Shape(*shape));
+                Item::Shape(shape, transform) => {
+                    instructions.push(Instruction::Shape(*shape, *transform));
                     true
                 }
             }
@@ -167,7 +168,7 @@ impl Default for SdfBuilderTree {
 //
 impl SdfBuilderTree {
     fn populate(&mut self) {
-        self.add_leaf(self.root_id, Shape::Disk(Default::default()));
+        self.add_leaf(self.root_id, Shape::Rectangle(Default::default()));
     }
 
     // pub fn get_selected_item(&self) -> Option<&Item> {
@@ -261,14 +262,14 @@ impl SdfBuilderTree {
                     self.send_command(Command::RemoveItem { item_id: *id })
                 }
             }
-            Item::Shape(_) => {}
+            Item::Shape(_, _) => {}
         }
         if let Some((id, pos)) = self.parent_and_pos(item_id) {
             match self.items.get_mut(&id).unwrap() {
                 Item::Operator(_, items) => {
                     items.remove(pos);
                 }
-                Item::Shape(_) => {}
+                Item::Shape(_, _) => {}
             }
         }
         self.items.remove(&item_id);
@@ -315,9 +316,8 @@ impl SdfBuilderTree {
 
     fn add_leaf(&mut self, parent_id: ItemId, shape: Shape) {
         let id = ItemId::new();
-        let item = Item::Shape(shape);
 
-        self.items.insert(id, item);
+        self.items.insert(id, shape.into());
 
         if let Some(Item::Operator(_, children)) = self.items.get_mut(&parent_id) {
             children.push(id);
@@ -336,7 +336,6 @@ impl SdfBuilderTree {
 impl SdfBuilderTree {
     pub fn ui(&mut self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
         for (shape, icon) in Shape::iter().zip(icons) {
-            let item0 = Item::Shape(shape);
             let label: &str = shape.into();
             let response = egui::Frame::none()
                 .stroke(egui::Stroke {
@@ -359,7 +358,7 @@ impl SdfBuilderTree {
                 false,
                 &response,
                 None,
-                Some(item0),
+                Some(shape.into()),
             );
         }
         ui.separator();
@@ -507,15 +506,15 @@ impl SdfBuilderTree {
                 Some(Item::Operator(operator, children)) => {
                     self.container_ui(ui, *child_id, operator, children);
                 }
-                Some(Item::Shape(shape)) => {
-                    self.leaf_ui(ui, *child_id, *shape);
+                Some(Item::Shape(shape, transform)) => {
+                    self.leaf_ui(ui, *child_id, *shape, *transform);
                 }
                 None => {}
             }
         }
     }
 
-    fn leaf_ui(&self, ui: &mut egui::Ui, item_id: ItemId, shape: Shape) {
+    fn leaf_ui(&self, ui: &mut egui::Ui, item_id: ItemId, shape: Shape, transform: Transform) {
         let response = egui::Frame::none()
             .stroke(egui::Stroke {
                 width: 4.0,
@@ -541,9 +540,14 @@ impl SdfBuilderTree {
                     .num_columns(2)
                     .show(ui, |ui| {
                         let new_shape = shape.ui(ui);
-                        if shape != new_shape {
+                        let mut new_transform = transform;
+                        ui.end_row();
+                        ui.label("pos");
+                        ui.add(egui::DragValue::new(&mut new_transform.position.x).speed(0.01));
+                        ui.add(egui::DragValue::new(&mut new_transform.position.y).speed(0.01));
+                        if shape != new_shape || transform != new_transform {
                             self.send_command(Command::EditItem {
-                                item: new_shape.into(),
+                                item: Item::Shape(new_shape, new_transform),
                                 item_id,
                             });
                         }
@@ -554,7 +558,10 @@ impl SdfBuilderTree {
             .inner;
 
         if response.clicked() {
-            self.send_command(Command::SetSelectedItem(Some(item_id), Some(shape.into())));
+            self.send_command(Command::SetSelectedItem(
+                Some(item_id),
+                Some(Item::Shape(shape, transform)),
+            ));
         }
 
         self.handle_drag_and_drop_interaction(ui, item_id, false, &response, None, None);

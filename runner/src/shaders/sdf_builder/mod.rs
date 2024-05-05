@@ -3,7 +3,7 @@ use crate::{
     window::UserEvent,
 };
 use bytemuck::Zeroable;
-use dfutils::{grid::*, primitives_enum::Shape, sdf::Sdf};
+use dfutils::{grid::*, sdf::Sdf};
 use egui::{Context, CursorIcon, TextureHandle};
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -14,7 +14,9 @@ use glam::*;
 use resize::Resize;
 use sdf_builder_tree::{Command, Item, SdfBuilderTree};
 use shared::{
-    from_pixels, push_constants::sdf_builder::ShaderConstants, sdf_interpreter::SdfInstructions,
+    from_pixels,
+    push_constants::sdf_builder::ShaderConstants,
+    sdf_interpreter::{SdfInstructions, Transform},
 };
 use std::time::Instant;
 
@@ -106,14 +108,25 @@ impl crate::controller::Controller for Controller {
         ) {
             let item: Item = match self.grab_type {
                 GrabType::Move => match item {
-                    Item::Shape(shape) => match shape {
-                        Shape::Disk(_) => todo!(),
-                        _ => todo!(),
-                    },
+                    Item::Shape(shape, transform) => Item::Shape(
+                        *shape,
+                        Transform {
+                            position: transform.position - (position - cursor),
+                        },
+                    ),
                     Item::Operator(_, _) => todo!(),
                 },
                 GrabType::Resize => match item {
-                    Item::Shape(shape) => shape.resize(position, cursor, derivative).into(),
+                    Item::Shape(shape, transform) => Item::Shape(
+                        shape
+                            .resize(
+                                position - transform.position,
+                                cursor - transform.position,
+                                derivative,
+                            )
+                            .into(),
+                        *transform,
+                    ),
                     _ => todo!(),
                 },
                 GrabType::None => unimplemented!(),
@@ -178,8 +191,8 @@ impl crate::controller::Controller for Controller {
             }
         } else if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
             match item {
-                Item::Shape(shape) => {
-                    let d = shape.signed_distance(self.cursor_from_pixels());
+                Item::Shape(shape, transform) => {
+                    let d = shape.signed_distance(self.cursor_from_pixels() - transform.position);
                     self.grab_type = if d.abs() < 0.01 {
                         ctx.set_cursor_icon(self.choose_resize_cursor());
                         GrabType::Resize
@@ -227,7 +240,9 @@ impl Controller {
     fn derivative_at_cursor(&self) -> Vec2 {
         if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
             match item {
-                Item::Shape(shape) => shape.derivative(self.cursor_from_pixels(), 0.01),
+                Item::Shape(shape, transform) => {
+                    shape.derivative(self.cursor_from_pixels() - transform.position, 0.01)
+                }
                 _ => Vec2::ZERO,
             }
         } else {
