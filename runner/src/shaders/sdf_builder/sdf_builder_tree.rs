@@ -1,6 +1,6 @@
 use super::shape_ui::ShapeUi;
 use dfutils::primitives_enum::Shape;
-use egui::NumExt as _;
+use egui::{load::SizedTexture, NumExt as _, TextureHandle};
 use shared::sdf_interpreter::{Instruction, Operator};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
@@ -334,8 +334,8 @@ impl SdfBuilderTree {
 // UI stuff
 //
 impl SdfBuilderTree {
-    pub fn ui(&mut self, ui: &mut egui::Ui) {
-        for shape in Shape::iter() {
+    pub fn ui(&mut self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
+        for (shape, icon) in Shape::iter().zip(icons) {
             let item0 = Item::Shape(shape);
             let label: &str = shape.into();
             let response = egui::Frame::none()
@@ -345,6 +345,7 @@ impl SdfBuilderTree {
                 })
                 .inner_margin(egui::Margin::same(5.0))
                 .show(ui, |ui| {
+                    ui.image(SizedTexture::from_handle(icon));
                     ui.add(
                         egui::Label::new(label)
                             .selectable(false)

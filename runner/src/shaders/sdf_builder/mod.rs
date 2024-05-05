@@ -4,7 +4,7 @@ use crate::{
 };
 use bytemuck::Zeroable;
 use dfutils::{grid::*, primitives_enum::Shape, sdf::Sdf};
-use egui::{Context, CursorIcon};
+use egui::{Context, CursorIcon, TextureHandle};
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton},
@@ -18,6 +18,7 @@ use shared::{
 };
 use std::time::Instant;
 
+mod icons;
 mod resize;
 mod sdf_builder_tree;
 pub mod shape_ui;
@@ -61,6 +62,7 @@ pub struct Controller {
     grab_type: GrabType,
     grabbing: Option<Grabbing>,
     original_selected_item: Option<Item>,
+    icon_textures: Vec<TextureHandle>,
 }
 
 impl crate::controller::Controller for Controller {
@@ -76,6 +78,7 @@ impl crate::controller::Controller for Controller {
             grab_type: GrabType::None,
             grabbing: None,
             original_selected_item: None,
+            icon_textures: vec![],
         }
     }
 
@@ -162,6 +165,7 @@ impl crate::controller::Controller for Controller {
     }
 
     fn ui(&mut self, ctx: &Context, ui: &mut egui::Ui, event_proxy: &EventLoopProxy<UserEvent>) {
+        self.init_icon_textures(ctx);
         if self.grabbing.is_some() {
             match self.grab_type {
                 GrabType::Move => {
@@ -193,7 +197,7 @@ impl crate::controller::Controller for Controller {
             ctx.set_cursor_icon(CursorIcon::Default);
         }
 
-        self.sdf_builder_tree.ui(ui);
+        self.sdf_builder_tree.ui(ui, &self.icon_textures);
         if self.sdf_builder_tree.grid_needs_updating {
             let instructions = self.sdf_builder_tree.generate_instructions();
             self.grid.update(&SdfInstructions::new(&instructions));
@@ -246,6 +250,14 @@ impl Controller {
             CursorIcon::ResizeVertical
         } else {
             CursorIcon::ResizeHorizontal
+        }
+    }
+
+    fn init_icon_textures(&mut self, ctx: &Context) {
+        if self.icon_textures.is_empty() {
+            self.icon_textures = icons::generate_icons()
+                .map(|icon| ctx.load_texture("logo", icon, Default::default()))
+                .collect();
         }
     }
 }
