@@ -9,7 +9,7 @@ use spirv_std::glam::*;
 use spirv_std::num_traits::Float;
 use spirv_std::spirv;
 
-fn sdf(p: Vec2, grid: &GridRef) -> f32 {
+fn sdf(p: Vec2, grid: GridRef) -> f32 {
     grid.signed_distance(p)
 }
 
@@ -17,17 +17,17 @@ fn sdf(p: Vec2, grid: &GridRef) -> f32 {
 pub fn main_fs(
     #[spirv(frag_coord)] frag_coord: Vec4,
     #[spirv(push_constant)] constants: &ShaderConstants,
-    #[spirv(storage_buffer, descriptor_set = 0, binding = 0)] grid_buffer: &mut [f32],
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 0)] grid_buffer: &[f32],
     output: &mut Vec4,
 ) {
     let uv = from_pixels(frag_coord.xy(), constants.size);
 
     let grid = GridRef::new(
-        grid_buffer,
         constants.size.width as usize,
         constants.size.height as usize,
+        grid_buffer,
     );
-    let d = sdf(uv, &grid);
+    let d = sdf(uv, grid);
     let mut col = if d < 0.0 {
         vec3(0.65, 0.85, 1.0)
     } else {
@@ -38,7 +38,7 @@ pub fn main_fs(
 
     if constants.mouse_button_pressed.into() {
         let cursor: Vec2 = constants.cursor.into();
-        let d = sdf(cursor, &grid);
+        let d = sdf(cursor, grid);
         let p = uv - cursor;
         col = col.lerp(
             vec3(1.0, 1.0, 0.0),

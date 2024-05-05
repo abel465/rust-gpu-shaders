@@ -5,26 +5,26 @@ use crate::{
 use glam::{vec2, Vec2};
 
 pub struct Grid {
+    pub w: usize,
+    pub h: usize,
     pub buffer: Vec<f32>,
-    pub rows: usize,
-    pub cols: usize,
 }
 
 impl Grid {
-    pub fn new(rows: usize, cols: usize) -> Self {
+    pub fn new(w: usize, h: usize) -> Self {
         Self {
-            buffer: vec![0.0; rows * cols],
-            rows,
-            cols,
+            w,
+            h,
+            buffer: vec![0.0; w * h],
         }
     }
 
     pub fn as_ref(&self) -> GridRef<'_> {
-        GridRef::new(&self.buffer, self.rows, self.cols)
+        GridRef::new(self.w, self.h, &self.buffer)
     }
 
     pub fn as_ref_mut(&mut self) -> GridRefMut<'_> {
-        GridRefMut::new(&mut self.buffer, self.rows, self.cols)
+        GridRefMut::new(self.w, self.h, &mut self.buffer)
     }
 
     pub fn from_sdf<
@@ -58,36 +58,36 @@ impl Grid {
         let iter = self.buffer.iter_mut();
 
         iter.enumerate().for_each(|(i, value)| {
-            let row = i / self.cols;
-            let col = i - row * self.cols;
+            let y = i / self.w;
+            let x = i - y * self.w;
             let p = vec2(
-                (row as f32 / self.rows as f32 - 0.5) * ar,
-                col as f32 / self.cols as f32 - 0.5,
-            ) + (self.cols as f32).recip() * 0.5;
+                (x as f32 / self.w as f32 - 0.5) * ar,
+                0.5 - y as f32 / self.h as f32,
+            ) + 0.5 / self.w as f32;
             debug_assert!(p.x.abs() < 0.5 * ar && p.y.abs() < 0.5);
             *value = sdf.signed_distance(p);
         });
     }
 
-    pub fn resize(&mut self, rows: usize, cols: usize) {
-        self.rows = rows;
-        self.cols = cols;
-        let new_size = rows * cols;
+    pub fn resize(&mut self, w: usize, h: usize) {
+        self.w = w;
+        self.h = h;
+        let new_size = w * h;
         if new_size > self.buffer.len() {
             self.buffer.resize(new_size, 0.0);
         }
     }
 
-    pub fn aspect_ratio(&self) -> f32 {
-        self.rows as f32 / self.cols as f32
+    fn aspect_ratio(&self) -> f32 {
+        self.w as f32 / self.h as f32
     }
 
-    pub fn get(&self, row: usize, col: usize) -> f32 {
-        self.buffer[row * self.cols + col]
+    pub fn get(&self, x: usize, y: usize) -> f32 {
+        self.buffer[y * self.w + x]
     }
 
-    pub fn set(&mut self, row: usize, col: usize, value: f32) {
-        self.buffer[row * self.cols + col] = value;
+    pub fn set(&mut self, x: usize, y: usize, value: f32) {
+        self.buffer[y * self.w + x] = value;
     }
 }
 
