@@ -39,6 +39,12 @@ impl From<Shape> for Item {
     }
 }
 
+impl From<Operator> for Item {
+    fn from(op: Operator) -> Self {
+        Item::Operator(op, Default::default())
+    }
+}
+
 impl SdfBuilderTree {
     pub fn generate_instructions(&self) -> Vec<Instruction> {
         let mut instructions = vec![];
@@ -363,7 +369,6 @@ impl SdfBuilderTree {
         }
         ui.separator();
         for operator in Operator::iter() {
-            let item0 = Item::Operator(operator, Vec::new());
             let label: &str = operator.into();
             let response = ui.add(
                 egui::Label::new(label)
@@ -376,7 +381,7 @@ impl SdfBuilderTree {
                 false,
                 &response,
                 None,
-                Some(item0),
+                Some(operator.into()),
             );
         }
         ui.separator();

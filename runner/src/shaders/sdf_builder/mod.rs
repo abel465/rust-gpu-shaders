@@ -3,7 +3,7 @@ use crate::{
     window::UserEvent,
 };
 use bytemuck::Zeroable;
-use dfutils::{grid::*, sdf::Sdf};
+use dfutils::{grid::*, primitives_enum::Shape, sdf::Sdf};
 use egui::{Context, CursorIcon, TextureHandle};
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
@@ -192,16 +192,7 @@ impl crate::controller::Controller for Controller {
         } else if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
             match item {
                 Item::Shape(shape, transform) => {
-                    let d = shape.signed_distance(self.cursor_from_pixels() - transform.position);
-                    self.grab_type = if d.abs() < 0.01 {
-                        ctx.set_cursor_icon(self.choose_resize_cursor());
-                        GrabType::Resize
-                    } else if d < 0.0 {
-                        ctx.set_cursor_icon(CursorIcon::Grab);
-                        GrabType::Move
-                    } else {
-                        GrabType::None
-                    }
+                    self.set_grab_type(ctx, *shape, self.cursor_from_pixels() - transform.position);
                 }
                 _ => {}
             }
@@ -273,6 +264,38 @@ impl Controller {
             self.icon_textures = icons::generate_icons()
                 .map(|icon| ctx.load_texture("logo", icon, Default::default()))
                 .collect();
+        }
+    }
+
+    pub fn set_grab_type(&mut self, ctx: &Context, shape: Shape, position: Vec2) {
+        let d = shape.signed_distance(position);
+        self.grab_type = match shape {
+            Shape::LineSegment(line_segment) => {
+                if d.abs() < 0.01 {
+                    if line_segment.a.distance(position) < 0.01
+                        || line_segment.b.distance(position) < 0.01
+                    {
+                        ctx.set_cursor_icon(self.choose_resize_cursor());
+                        GrabType::Resize
+                    } else {
+                        ctx.set_cursor_icon(CursorIcon::Grab);
+                        GrabType::Move
+                    }
+                } else {
+                    GrabType::None
+                }
+            }
+            _ => {
+                if d.abs() < 0.01 {
+                    ctx.set_cursor_icon(self.choose_resize_cursor());
+                    GrabType::Resize
+                } else if d < 0.0 {
+                    ctx.set_cursor_icon(CursorIcon::Grab);
+                    GrabType::Move
+                } else {
+                    GrabType::None
+                }
+            }
         }
     }
 }

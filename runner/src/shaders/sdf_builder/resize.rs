@@ -61,8 +61,13 @@ impl Resize for Cross {
 }
 
 impl Resize for LineSegment {
-    fn resize(self, _initial: Vec2, _current: Vec2, _derivative: Vec2) -> Self {
-        todo!()
+    fn resize(mut self, initial: Vec2, current: Vec2, _derivative: Vec2) -> Self {
+        if initial.distance(self.a) < 0.01 {
+            self.a += current - initial;
+        } else {
+            self.b += current - initial;
+        }
+        self
     }
 }
 
