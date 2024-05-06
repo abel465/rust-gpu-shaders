@@ -45,6 +45,34 @@ impl From<Operator> for Item {
     }
 }
 
+#[derive(Debug)]
+pub struct SelectedItem {
+    pub id: Option<ItemId>,
+    pub new_item: Option<Item>,
+}
+
+impl From<ItemId> for SelectedItem {
+    fn from(id: ItemId) -> Self {
+        Self {
+            id: Some(id),
+            new_item: None,
+        }
+    }
+}
+
+impl SelectedItem {
+    const NONE: Self = SelectedItem {
+        id: None,
+        new_item: None,
+    };
+    const fn new(id: ItemId, item: Item) -> Self {
+        SelectedItem {
+            id: Some(id),
+            new_item: Some(item),
+        }
+    }
+}
+
 impl SdfBuilderTree {
     pub fn generate_instructions(&self) -> Vec<Instruction> {
         let mut instructions = vec![];
@@ -95,7 +123,7 @@ impl SdfBuilderTree {
 #[derive(Debug)]
 pub enum Command {
     /// Set the selected item
-    SetSelectedItem(Option<ItemId>, Option<Item>),
+    SetSelectedItem(SelectedItem),
 
     /// Move the currently dragged item to the given container and position.
     MoveItem {
@@ -130,7 +158,7 @@ pub struct SdfBuilderTree {
     root_id: ItemId,
 
     /// Selected item, if any
-    pub selected_item: (Option<ItemId>, Option<Item>),
+    pub selected_item: SelectedItem,
 
     /// If a drag is ongoing, this is the id of the destination container (if any was identified)
     ///
@@ -156,7 +184,7 @@ impl Default for SdfBuilderTree {
         let mut res = Self {
             items: std::iter::once((root_id, root_item)).collect(),
             root_id,
-            selected_item: (None, None),
+            selected_item: SelectedItem::NONE,
             target_container: None,
             command_receiver,
             command_sender,
@@ -177,9 +205,9 @@ impl SdfBuilderTree {
         self.add_leaf(self.root_id, Shape::Rectangle(Default::default()));
     }
 
-    // pub fn get_selected_item(&self) -> Option<&Item> {
-    //     self.selected_item.and_then(|id| self.items.get(&id))
-    // }
+    pub fn get_selected_item(&self) -> Option<&Item> {
+        self.selected_item.id.and_then(|id| self.items.get(&id))
+    }
 
     fn container(&self, id: ItemId) -> Option<&Vec<ItemId>> {
         match self.items.get(&id) {
@@ -250,11 +278,6 @@ impl SdfBuilderTree {
         println!("Editing {item_id:?}");
 
         *self.items.get_mut(&item_id).unwrap() = item.clone();
-        if let Some(id) = self.selected_item.0 {
-            if id == item_id {
-                self.selected_item.1 = Some(item);
-            }
-        }
     }
 
     /// Remove item `item_id`.
@@ -369,14 +392,7 @@ impl SdfBuilderTree {
                         frame.frame.stroke = egui::Stroke::new(1.0, egui::Color32::DARK_GRAY);
                     }
                     frame.end(ui);
-                    self.handle_drag_and_drop_interaction(
-                        ui,
-                        ItemId::new(),
-                        false,
-                        &response,
-                        None,
-                        Some(shape.into()),
-                    );
+                    self.handle_new_item_drag(ui, &response, shape.into());
                     if end_row {
                         ui.end_row();
                     }
@@ -391,14 +407,7 @@ impl SdfBuilderTree {
                     .selectable(false)
                     .sense(egui::Sense::click_and_drag()),
             );
-            self.handle_drag_and_drop_interaction(
-                ui,
-                ItemId::new(),
-                false,
-                &response,
-                None,
-                Some(operator.into()),
-            );
+            self.handle_new_item_drag(ui, &response, operator.into());
         }
         ui.separator();
 
@@ -415,7 +424,7 @@ impl SdfBuilderTree {
             )
             .clicked()
         {
-            self.send_command(Command::SetSelectedItem(None, None));
+            self.send_command(Command::SetSelectedItem(SelectedItem::NONE));
         }
 
         // always reset the target container
@@ -424,7 +433,7 @@ impl SdfBuilderTree {
         while let Ok(command) = self.command_receiver.try_recv() {
             println!("Received command: {command:?}");
             match command {
-                Command::SetSelectedItem(item_id, item) => self.selected_item = (item_id, item),
+                Command::SetSelectedItem(selected_item) => self.selected_item = selected_item,
                 Command::MoveItem {
                     moved_item_id,
                     target_container_id,
@@ -493,7 +502,7 @@ impl SdfBuilderTree {
             });
 
         if head_response.inner.clicked() {
-            self.send_command(Command::SetSelectedItem(Some(item_id), None));
+            self.send_command(Command::SetSelectedItem(item_id.into()));
         }
 
         if self.target_container == Some(item_id) {
@@ -510,14 +519,13 @@ impl SdfBuilderTree {
             true,
             &head_response.inner.union(response),
             body_resp.as_ref().map(|r| &r.response),
-            None,
         );
     }
 
     fn container_children_ui(&self, ui: &mut egui::Ui, children: &Vec<ItemId>) {
         for child_id in children {
             // check if the item is selected
-            ui.visuals_mut().override_text_color = if Some(*child_id) == self.selected_item.0 {
+            ui.visuals_mut().override_text_color = if Some(*child_id) == self.selected_item.id {
                 Some(ui.visuals().selection.bg_fill)
             } else {
                 None
@@ -579,13 +587,21 @@ impl SdfBuilderTree {
             .inner;
 
         if response.clicked() {
-            self.send_command(Command::SetSelectedItem(
-                Some(item_id),
-                Some(Item::Shape(shape, transform)),
-            ));
+            self.send_command(Command::SetSelectedItem(item_id.into()))
         }
 
-        self.handle_drag_and_drop_interaction(ui, item_id, false, &response, None, None);
+        self.handle_drag_and_drop_interaction(ui, item_id, false, &response, None);
+    }
+
+    fn handle_new_item_drag(&self, ui: &egui::Ui, response: &egui::Response, new_item: Item) {
+        let item_id = ItemId::new();
+        if response.drag_started() {
+            egui::DragAndDrop::set_payload(ui.ctx(), item_id);
+
+            self.send_command(Command::SetSelectedItem(SelectedItem::new(
+                item_id, new_item,
+            )));
+        }
     }
 
     fn handle_drag_and_drop_interaction(
@@ -595,7 +611,6 @@ impl SdfBuilderTree {
         is_container: bool,
         response: &egui::Response,
         body_response: Option<&egui::Response>,
-        new_item: Option<Item>,
     ) {
         //
         // handle start of drag
@@ -605,7 +620,7 @@ impl SdfBuilderTree {
             egui::DragAndDrop::set_payload(ui.ctx(), item_id);
 
             // force selection to the dragged item
-            self.send_command(Command::SetSelectedItem(Some(item_id), new_item.clone()));
+            self.send_command(Command::SetSelectedItem(item_id.into()));
         }
 
         //
@@ -688,7 +703,7 @@ impl SdfBuilderTree {
             // note: can't use `response.drag_released()` because we not the item which
             // started the drag
             if ui.input(|i| i.pointer.any_released()) {
-                if let Some(item) = &self.selected_item.1 {
+                if let Some(item) = &self.selected_item.new_item {
                     self.send_command(Command::AddItem {
                         item: item.clone(),
                         new_item_id: dragged_item_id,

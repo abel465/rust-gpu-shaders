@@ -1,7 +1,3 @@
-//! Helpers for drag and drop support. Works well in combination with [`crate::list_item::ListItem`].
-
-// use eframe::egui;
-
 /// Context information related to a candidate drop target, used by [`find_drop_target`] to compute the [`DropTarget`],
 /// if any.
 pub struct DropItemDescription<ItemId: Copy> {

@@ -104,7 +104,7 @@ impl crate::controller::Controller for Controller {
         ) = (
             self.grabbing,
             &self.original_selected_item,
-            self.sdf_builder_tree.selected_item.0,
+            self.sdf_builder_tree.selected_item.id,
         ) {
             let item: Item = match self.grab_type {
                 GrabType::Move => match item {
@@ -147,7 +147,10 @@ impl crate::controller::Controller for Controller {
                             self.cursor_from_pixels(),
                             self.derivative_at_cursor(),
                         ));
-                        self.original_selected_item = self.sdf_builder_tree.selected_item.1.clone();
+                        self.original_selected_item = self
+                            .sdf_builder_tree
+                            .get_selected_item()
+                            .map(|item| item.clone());
                     }
                     true
                 }
@@ -189,7 +192,7 @@ impl crate::controller::Controller for Controller {
                 }
                 GrabType::None => {}
             }
-        } else if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
+        } else if let Some(item) = &self.sdf_builder_tree.get_selected_item() {
             match item {
                 Item::Shape(shape, transform) => {
                     self.set_grab_type(ctx, *shape, self.cursor_from_pixels() - transform.position);
@@ -229,7 +232,7 @@ impl Controller {
     }
 
     fn derivative_at_cursor(&self) -> Vec2 {
-        if let Some(item) = &self.sdf_builder_tree.selected_item.1 {
+        if let Some(item) = &self.sdf_builder_tree.get_selected_item() {
             match item {
                 Item::Shape(shape, transform) => {
                     shape.derivative(self.cursor_from_pixels() - transform.position, 0.01)
