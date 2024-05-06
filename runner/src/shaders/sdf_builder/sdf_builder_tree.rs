@@ -2,6 +2,7 @@ use super::{icons::TextureHandles, shape_ui::ShapeUi};
 use dfutils::primitives_enum::Shape;
 use egui::{load::SizedTexture, NumExt as _, TextureHandle};
 use glam::*;
+use itertools::izip;
 use shared::sdf_interpreter::{Instruction, Operator, Transform};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
@@ -417,9 +418,10 @@ impl SdfBuilderTree {
     }
 
     fn shapes_ui(&self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
-        egui::Grid::new("shape_icons_grid").show(ui, |ui| {
-            let mut end_row = false;
-            for (shape, icon) in Shape::iter().zip(icons) {
+        let add_contents = |ui: &mut egui::Ui| {
+            for (shape, icon, end_row) in
+                izip!(Shape::iter(), icons, [false, true].into_iter().cycle())
+            {
                 use convert_case::{Case, Casing};
                 let label = Into::<&str>::into(shape).to_case(Case::Title);
                 let mut frame = egui::Frame::none()
@@ -443,15 +445,20 @@ impl SdfBuilderTree {
                 if end_row {
                     ui.end_row();
                 }
-                end_row = !end_row;
             }
-        });
+        };
+        egui::ScrollArea::vertical()
+            .max_height(220.0)
+            .show(ui, |ui| {
+                egui::Grid::new("shape_icons_grid").show(ui, add_contents);
+            });
     }
 
     fn operators_ui(&self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
         egui::Grid::new("operator_icons_grid").show(ui, |ui| {
-            let mut end_row = false;
-            for (operator, icon) in Operator::iter().zip(icons) {
+            for (operator, icon, end_row) in
+                izip!(Operator::iter(), icons, [false, true].into_iter().cycle())
+            {
                 let label: &str = operator.into();
                 let mut frame = egui::Frame::none()
                     .inner_margin(egui::Margin::same(3.0))
@@ -474,7 +481,6 @@ impl SdfBuilderTree {
                 if end_row {
                     ui.end_row();
                 }
-                end_row = !end_row;
             }
         });
     }
