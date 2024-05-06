@@ -358,7 +358,11 @@ impl SdfBuilderTree {
         ui.separator();
 
         if let Some(top_level_items) = self.container(self.root_id) {
-            self.container_children_ui(ui, top_level_items);
+            if top_level_items.is_empty() {
+                self.root_drop_target(ui);
+            } else {
+                self.container_children_ui(ui, top_level_items);
+            }
         }
 
         // deselect by clicking in the empty space
@@ -608,8 +612,8 @@ impl SdfBuilderTree {
     }
 
     fn handle_new_item_drag(&self, ui: &egui::Ui, response: &egui::Response, new_item: Item) {
-        let item_id = ItemId::new();
         if response.drag_started() {
+            let item_id = ItemId::new();
             egui::DragAndDrop::set_payload(ui.ctx(), item_id);
 
             self.send_command(Command::SetSelectedItem(SelectedItem::new(
@@ -711,7 +715,7 @@ impl SdfBuilderTree {
             ui.painter().hline(
                 span_x,
                 drop_target.indicator_position_y,
-                (2.0, egui::Color32::BLACK),
+                (4.0, egui::Color32::BLACK),
             );
 
             // note: can't use `response.drag_released()` because we not the item which
@@ -737,6 +741,41 @@ impl SdfBuilderTree {
                 self.send_command(Command::HighlightTargetContainer(
                     drop_target.target_parent_id,
                 ));
+            }
+        }
+    }
+
+    fn root_drop_target(&self, ui: &mut egui::Ui) {
+        let rect = ui.allocate_space(egui::vec2(ui.available_width(), 12.0)).1;
+
+        // find the item being dragged
+        let Some(dragged_item_id) = egui::DragAndDrop::payload(ui.ctx()).map(|payload| (*payload))
+        else {
+            // nothing is being dragged, we're done here
+            return;
+        };
+
+        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+
+        if ui.rect_contains_pointer(rect) {
+            ui.painter()
+                .hline(rect.x_range(), rect.bottom(), (4.0, egui::Color32::BLACK));
+
+            // note: can't use `response.drag_released()` because we not the item which
+            // started the drag
+            if ui.input(|i| i.pointer.any_released()) {
+                if let Some(item) = &self.selected_item.new_item {
+                    self.send_command(Command::AddItem {
+                        item: item.clone(),
+                        new_item_id: dragged_item_id,
+                        target_container_id: self.root_id,
+                        target_position_index: 0,
+                    });
+                }
+
+                egui::DragAndDrop::clear_payload(ui.ctx());
+            } else {
+                self.send_command(Command::HighlightTargetContainer(self.root_id));
             }
         }
     }
