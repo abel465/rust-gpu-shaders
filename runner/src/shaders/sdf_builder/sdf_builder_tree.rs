@@ -330,19 +330,6 @@ impl SdfBuilderTree {
         None
     }
 
-    // fn add_container(&mut self, parent_id: ItemId, operator: Operator) -> ItemId {
-    //     let id = ItemId::new();
-    //     let item = Item::Operator(operator, Vec::new());
-    //
-    //     self.items.insert(id, item);
-    //
-    //     if let Some(Item::Operator(_, children)) = self.items.get_mut(&parent_id) {
-    //         children.push(id);
-    //     }
-    //
-    //     id
-    // }
-
     fn add_leaf(&mut self, parent_id: ItemId, shape: Shape) {
         let id = ItemId::new();
 
@@ -364,51 +351,9 @@ impl SdfBuilderTree {
 //
 impl SdfBuilderTree {
     pub fn ui(&mut self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
-        egui::Grid::new("shape_icons_grid")
-            .num_columns(2)
-            .show(ui, |ui| {
-                let mut end_row = false;
-                for (i, (shape, icon)) in Shape::iter().zip(icons).enumerate() {
-                    use convert_case::{Case, Casing};
-                    let label = Into::<&str>::into(shape).to_case(Case::Title);
-                    let mut frame = egui::Frame::none()
-                        .inner_margin(egui::Margin::symmetric(2.0, 3.0))
-                        .begin(ui);
-                    let response = frame
-                        .content_ui
-                        .vertical_centered(|ui| {
-                            let ret1 = ui.add(egui::Label::new(label).selectable(false));
-                            let ret2 = ui.image(SizedTexture::from_handle(icon));
-                            let new_rect = ret1.rect.union(ret2.rect);
-                            let ret = ui.interact(
-                                new_rect,
-                                egui::Id::new(format!("shape{i}")),
-                                egui::Sense::click_and_drag(),
-                            );
-                            ret
-                        })
-                        .inner;
-                    if response.hovered() {
-                        frame.frame.stroke = egui::Stroke::new(1.0, egui::Color32::DARK_GRAY);
-                    }
-                    frame.end(ui);
-                    self.handle_new_item_drag(ui, &response, shape.into());
-                    if end_row {
-                        ui.end_row();
-                    }
-                    end_row = !end_row;
-                }
-            });
+        self.shapes_ui(ui, icons);
         ui.separator();
-        for operator in Operator::iter() {
-            let label: &str = operator.into();
-            let response = ui.add(
-                egui::Label::new(label)
-                    .selectable(false)
-                    .sense(egui::Sense::click_and_drag()),
-            );
-            self.handle_new_item_drag(ui, &response, operator.into());
-        }
+        self.operators_ui(ui);
         ui.separator();
 
         if let Some(top_level_items) = self.container(self.root_id) {
@@ -468,6 +413,56 @@ impl SdfBuilderTree {
                     self.target_container = Some(item_id);
                 }
             }
+        }
+    }
+
+    fn shapes_ui(&self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
+        egui::Grid::new("shape_icons_grid")
+            .num_columns(2)
+            .show(ui, |ui| {
+                let mut end_row = false;
+                for (i, (shape, icon)) in Shape::iter().zip(icons).enumerate() {
+                    use convert_case::{Case, Casing};
+                    let label = Into::<&str>::into(shape).to_case(Case::Title);
+                    let mut frame = egui::Frame::none()
+                        .inner_margin(egui::Margin::symmetric(2.0, 3.0))
+                        .begin(ui);
+                    let response = frame
+                        .content_ui
+                        .vertical_centered(|ui| {
+                            let rect = ui
+                                .label(label)
+                                .rect
+                                .union(ui.image(SizedTexture::from_handle(icon)).rect);
+                            ui.interact(
+                                rect,
+                                egui::Id::new(format!("shape{i}")),
+                                egui::Sense::click_and_drag(),
+                            )
+                        })
+                        .inner;
+                    if response.hovered() {
+                        frame.frame.stroke = egui::Stroke::new(1.0, egui::Color32::DARK_GRAY);
+                    }
+                    frame.end(ui);
+                    self.handle_new_item_drag(ui, &response, shape.into());
+                    if end_row {
+                        ui.end_row();
+                    }
+                    end_row = !end_row;
+                }
+            });
+    }
+
+    fn operators_ui(&self, ui: &mut egui::Ui) {
+        for operator in Operator::iter() {
+            let label: &str = operator.into();
+            let response = ui.add(
+                egui::Label::new(label)
+                    .selectable(false)
+                    .sense(egui::Sense::click_and_drag()),
+            );
+            self.handle_new_item_drag(ui, &response, operator.into());
         }
     }
 
