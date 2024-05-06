@@ -9,8 +9,8 @@ use spirv_std::glam::Vec2;
 #[derive(Clone, Copy, Debug)]
 pub enum Operator {
     Union,
-    Intersection,
-    Difference,
+    Intersect,
+    Subtract,
     Xor,
 }
 
@@ -19,8 +19,8 @@ impl Operator {
         use Operator::*;
         match self {
             Union => a.min(b),
-            Intersection => a.max(b),
-            Difference => b.max(-a),
+            Intersect => a.max(b),
+            Subtract => b.max(-a),
             Xor => a.min(b).max(-a.max(b)),
         }
     }
@@ -57,6 +57,7 @@ impl<'a> SdfInstructions<'a> {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub enum Instruction {
     Operator(Operator),
     Shape(Shape, Transform),
