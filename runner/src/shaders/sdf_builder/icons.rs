@@ -1,18 +1,79 @@
-use dfutils::{grid::Grid, primitives_enum::Shape};
-use egui::{Color32, ColorImage};
-use glam::vec3;
+use dfutils::{grid::Grid, primitives::Disk, primitives_enum::Shape};
+use egui::{Color32, ColorImage, TextureHandle};
+use glam::{vec2, vec3};
+use shared::sdf_interpreter::{Instruction, Operator, SdfInstructions, Transform};
 use strum::IntoEnumIterator;
 
-pub fn generate_icons() -> impl Iterator<Item = ColorImage> {
+pub struct IconImages {
+    pub shapes: Vec<ColorImage>,
+    pub operators: Vec<ColorImage>,
+}
+
+pub struct TextureHandles {
+    pub shapes: Vec<TextureHandle>,
+    pub operators: Vec<TextureHandle>,
+}
+
+impl TextureHandles {
+    pub fn empty() -> Self {
+        TextureHandles {
+            shapes: vec![],
+            operators: vec![],
+        }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.shapes.is_empty()
+    }
+}
+
+pub fn generate_icons() -> IconImages {
     const N: usize = 64;
-    Shape::iter().map(|shape| ColorImage {
-        size: [N, N],
-        pixels: Grid::from_sdf(N, N, &shape)
-            .buffer
-            .into_iter()
-            .map(color_from_distance)
+    IconImages {
+        shapes: Shape::iter()
+            .map(|shape| ColorImage {
+                size: [N, N],
+                pixels: Grid::from_sdf(N, N, &shape)
+                    .buffer
+                    .into_iter()
+                    .map(color_from_distance)
+                    .collect(),
+            })
             .collect(),
-    })
+        operators: Operator::iter()
+            .map(|op| {
+                let instructions = get_instructions(op);
+                let sdf = SdfInstructions::new(&instructions);
+                ColorImage {
+                    size: [N, N],
+                    pixels: Grid::from_sdf(N, N, &sdf)
+                        .buffer
+                        .into_iter()
+                        .map(color_from_distance)
+                        .collect(),
+                }
+            })
+            .collect(),
+    }
+}
+
+fn get_instructions(op: Operator) -> [Instruction; 3] {
+    let disk = Shape::Disk(Disk::new(0.25));
+    [
+        Instruction::Shape(
+            disk,
+            Transform {
+                position: vec2(0.1, 0.0),
+            },
+        ),
+        Instruction::Shape(
+            disk,
+            Transform {
+                position: vec2(-0.1, 0.0),
+            },
+        ),
+        Instruction::Operator(op),
+    ]
 }
 
 fn color_from_distance(d: f32) -> Color32 {

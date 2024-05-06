@@ -4,13 +4,14 @@ use crate::{
 };
 use bytemuck::Zeroable;
 use dfutils::{grid::*, primitives_enum::Shape, sdf::Sdf};
-use egui::{Context, CursorIcon, TextureHandle};
+use egui::{Context, CursorIcon};
 use egui_winit::winit::{
     dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton},
     event_loop::EventLoopProxy,
 };
 use glam::*;
+use icons::TextureHandles;
 use resize::Resize;
 use sdf_builder_tree::{Command, Item, SdfBuilderTree};
 use shared::{
@@ -64,7 +65,7 @@ pub struct Controller {
     grab_type: GrabType,
     grabbing: Option<Grabbing>,
     original_selected_item: Option<Item>,
-    icon_textures: Vec<TextureHandle>,
+    texture_handles: TextureHandles,
 }
 
 impl crate::controller::Controller for Controller {
@@ -80,7 +81,7 @@ impl crate::controller::Controller for Controller {
             grab_type: GrabType::None,
             grabbing: None,
             original_selected_item: None,
-            icon_textures: vec![],
+            texture_handles: TextureHandles::empty(),
         }
     }
 
@@ -204,7 +205,7 @@ impl crate::controller::Controller for Controller {
             ctx.set_cursor_icon(CursorIcon::Default);
         }
 
-        self.sdf_builder_tree.ui(ui, &self.icon_textures);
+        self.sdf_builder_tree.ui(ui, &self.texture_handles);
         if self.sdf_builder_tree.grid_needs_updating {
             let instructions = self.sdf_builder_tree.generate_instructions();
             self.grid.update(&SdfInstructions::new(&instructions));
@@ -263,10 +264,20 @@ impl Controller {
     }
 
     fn init_icon_textures(&mut self, ctx: &Context) {
-        if self.icon_textures.is_empty() {
-            self.icon_textures = icons::generate_icons()
-                .map(|icon| ctx.load_texture("logo", icon, Default::default()))
-                .collect();
+        if self.texture_handles.is_empty() {
+            let icon_images = icons::generate_icons();
+            self.texture_handles = TextureHandles {
+                shapes: icon_images
+                    .shapes
+                    .into_iter()
+                    .map(|icon| ctx.load_texture("logo", icon, Default::default()))
+                    .collect(),
+                operators: icon_images
+                    .operators
+                    .into_iter()
+                    .map(|icon| ctx.load_texture("logo", icon, Default::default()))
+                    .collect(),
+            }
         }
     }
 

@@ -1,4 +1,4 @@
-use super::shape_ui::ShapeUi;
+use super::{icons::TextureHandles, shape_ui::ShapeUi};
 use dfutils::primitives_enum::Shape;
 use egui::{load::SizedTexture, NumExt as _, TextureHandle};
 use glam::*;
@@ -350,10 +350,10 @@ impl SdfBuilderTree {
 // UI stuff
 //
 impl SdfBuilderTree {
-    pub fn ui(&mut self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
-        self.shapes_ui(ui, icons);
+    pub fn ui(&mut self, ui: &mut egui::Ui, icons: &TextureHandles) {
+        self.shapes_ui(ui, &icons.shapes);
         ui.separator();
-        self.operators_ui(ui);
+        self.operators_ui(ui, &icons.operators);
         ui.separator();
 
         if let Some(top_level_items) = self.container(self.root_id) {
@@ -417,53 +417,66 @@ impl SdfBuilderTree {
     }
 
     fn shapes_ui(&self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
-        egui::Grid::new("shape_icons_grid")
-            .num_columns(2)
-            .show(ui, |ui| {
-                let mut end_row = false;
-                for (i, (shape, icon)) in Shape::iter().zip(icons).enumerate() {
-                    use convert_case::{Case, Casing};
-                    let label = Into::<&str>::into(shape).to_case(Case::Title);
-                    let mut frame = egui::Frame::none()
-                        .inner_margin(egui::Margin::symmetric(2.0, 3.0))
-                        .begin(ui);
-                    let response = frame
-                        .content_ui
-                        .vertical_centered(|ui| {
-                            let rect = ui
-                                .label(label)
-                                .rect
-                                .union(ui.image(SizedTexture::from_handle(icon)).rect);
-                            ui.interact(
-                                rect,
-                                egui::Id::new(format!("shape{i}")),
-                                egui::Sense::click_and_drag(),
-                            )
-                        })
-                        .inner;
-                    if response.hovered() {
-                        frame.frame.stroke = egui::Stroke::new(1.0, egui::Color32::DARK_GRAY);
-                    }
-                    frame.end(ui);
-                    self.handle_new_item_drag(ui, &response, shape.into());
-                    if end_row {
-                        ui.end_row();
-                    }
-                    end_row = !end_row;
+        egui::Grid::new("shape_icons_grid").show(ui, |ui| {
+            let mut end_row = false;
+            for (shape, icon) in Shape::iter().zip(icons) {
+                use convert_case::{Case, Casing};
+                let label = Into::<&str>::into(shape).to_case(Case::Title);
+                let mut frame = egui::Frame::none()
+                    .inner_margin(egui::Margin::same(3.0))
+                    .begin(ui);
+                let response = frame
+                    .content_ui
+                    .vertical_centered(|ui| {
+                        let rect = ui
+                            .label(&label)
+                            .rect
+                            .union(ui.image(SizedTexture::from_handle(icon)).rect);
+                        ui.interact(rect, egui::Id::new(label), egui::Sense::click_and_drag())
+                    })
+                    .inner;
+                if response.hovered() {
+                    frame.frame.stroke = egui::Stroke::new(1.0, egui::Color32::DARK_GRAY);
                 }
-            });
+                frame.end(ui);
+                self.handle_new_item_drag(ui, &response, shape.into());
+                if end_row {
+                    ui.end_row();
+                }
+                end_row = !end_row;
+            }
+        });
     }
 
-    fn operators_ui(&self, ui: &mut egui::Ui) {
-        for operator in Operator::iter() {
-            let label: &str = operator.into();
-            let response = ui.add(
-                egui::Label::new(label)
-                    .selectable(false)
-                    .sense(egui::Sense::click_and_drag()),
-            );
-            self.handle_new_item_drag(ui, &response, operator.into());
-        }
+    fn operators_ui(&self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
+        egui::Grid::new("operator_icons_grid").show(ui, |ui| {
+            let mut end_row = false;
+            for (operator, icon) in Operator::iter().zip(icons) {
+                let label: &str = operator.into();
+                let mut frame = egui::Frame::none()
+                    .inner_margin(egui::Margin::same(3.0))
+                    .begin(ui);
+                let response = frame
+                    .content_ui
+                    .vertical_centered(|ui| {
+                        let rect = ui
+                            .label(label)
+                            .rect
+                            .union(ui.image(SizedTexture::from_handle(icon)).rect);
+                        ui.interact(rect, egui::Id::new(label), egui::Sense::click_and_drag())
+                    })
+                    .inner;
+                if response.hovered() {
+                    frame.frame.stroke = egui::Stroke::new(1.0, egui::Color32::DARK_GRAY);
+                }
+                frame.end(ui);
+                self.handle_new_item_drag(ui, &response, operator.into());
+                if end_row {
+                    ui.end_row();
+                }
+                end_row = !end_row;
+            }
+        });
     }
 
     fn container_ui(
