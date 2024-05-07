@@ -133,9 +133,7 @@ impl crate::controller::Controller for Controller {
                 GrabType::None => unimplemented!(),
             };
             self.sdf_builder_tree
-                .command_sender
-                .send(Command::EditItem { item, item_id })
-                .ok();
+                .send_command(Command::EditItem { item, item_id });
         }
     }
 

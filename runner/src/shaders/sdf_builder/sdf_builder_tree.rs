@@ -170,7 +170,7 @@ pub struct SdfBuilderTree {
     command_receiver: std::sync::mpsc::Receiver<Command>,
 
     /// Channel to send commands from the UI
-    pub command_sender: std::sync::mpsc::Sender<Command>,
+    command_sender: std::sync::mpsc::Sender<Command>,
 
     pub grid_needs_updating: bool,
 }
@@ -341,7 +341,7 @@ impl SdfBuilderTree {
         }
     }
 
-    fn send_command(&self, command: Command) {
+    pub fn send_command(&self, command: Command) {
         // The only way this can fail is if the receiver has been dropped.
         self.command_sender.send(command).ok();
     }
@@ -503,17 +503,20 @@ impl SdfBuilderTree {
                 true,
             )
             .show_header(ui, |ui| {
-                let ret = ui.add(
+                let resp = ui.add(
                     egui::Label::new(format!("{operator:?}"))
                         .selectable(false)
                         .sense(egui::Sense::click_and_drag()),
                 );
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                    if ui.button("x").clicked() {
+                    let resp = ui.button("x");
+                    if resp.clicked() {
                         self.send_command(Command::RemoveItem { item_id });
-                    };
-                });
-                ret
+                    }
+                    resp
+                })
+                .inner
+                .union(resp)
             })
             .body(|ui| {
                 self.container_children_ui(ui, children);
@@ -531,11 +534,18 @@ impl SdfBuilderTree {
             );
         }
 
+        let mut response = head_response.inner.union(response);
+        if children.is_empty() {
+            if let Some(resp) = &body_resp {
+                response.rect = response.rect.union(resp.response.rect.clone());
+            }
+        }
+
         self.handle_drag_and_drop_interaction(
             ui,
             item_id,
             true,
-            &head_response.inner.union(response),
+            &response,
             body_resp.as_ref().map(|r| &r.response),
         );
     }
@@ -562,50 +572,53 @@ impl SdfBuilderTree {
     }
 
     fn leaf_ui(&self, ui: &mut egui::Ui, item_id: ItemId, shape: Shape, transform: Transform) {
-        let response = egui::Frame::none()
-            .stroke(egui::Stroke {
-                width: 4.0,
-                color: egui::Color32::DARK_GRAY,
-            })
-            .inner_margin(egui::Margin::same(5.0))
-            .show(ui, |ui| {
+        let (response, head_response, body_resp) =
+            egui::collapsing_header::CollapsingState::load_with_default_open(
+                ui.ctx(),
+                item_id.into(),
+                false,
+            )
+            .show_header(ui, |ui| {
                 let label: &str = shape.into();
-                let ret = ui.horizontal(|ui| {
-                    let ret = ui.add(
-                        egui::Label::new(label)
-                            .selectable(false)
-                            .sense(egui::Sense::click_and_drag()),
-                    );
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
-                        if ui.button("x").clicked() {
-                            self.send_command(Command::RemoveItem { item_id });
-                        };
-                    });
-                    ret
-                });
-                egui::Grid::new("shape_params_grid")
-                    .num_columns(2)
-                    .show(ui, |ui| {
-                        let new_shape = shape.ui(ui);
-                        let mut new_transform = transform;
-                        ui.end_row();
-                        ui.label("pos");
-                        ui.add(egui::DragValue::new(&mut new_transform.position.x).speed(0.01));
-                        ui.add(egui::DragValue::new(&mut new_transform.position.y).speed(0.01));
-                        if shape != new_shape || transform != new_transform {
-                            self.send_command(Command::EditItem {
-                                item: Item::Shape(new_shape, new_transform),
-                                item_id,
-                            });
-                        }
-                    });
-                ret
+                let resp = ui.add(
+                    egui::Label::new(label)
+                        .selectable(false)
+                        .sense(egui::Sense::click_and_drag()),
+                );
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::TOP), |ui| {
+                    let resp = ui.button("x");
+                    if resp.clicked() {
+                        self.send_command(Command::RemoveItem { item_id });
+                    }
+                    resp
+                })
+                .inner
+                .union(resp)
             })
-            .inner
-            .inner;
+            .body(|ui| {
+                egui::Grid::new("shape_params_grid").show(ui, |ui| {
+                    let new_shape = shape.ui(ui);
+                    let mut new_transform = transform;
+                    ui.end_row();
+                    ui.label("pos");
+                    ui.add(egui::DragValue::new(&mut new_transform.position.x).speed(0.01));
+                    ui.add(egui::DragValue::new(&mut new_transform.position.y).speed(0.01));
+                    if shape != new_shape || transform != new_transform {
+                        self.send_command(Command::EditItem {
+                            item: Item::Shape(new_shape, new_transform),
+                            item_id,
+                        });
+                    }
+                });
+            });
 
-        if response.clicked() {
-            self.send_command(Command::SetSelectedItem(item_id.into()))
+        if head_response.inner.clicked() {
+            self.send_command(Command::SetSelectedItem(item_id.into()));
+        }
+
+        let mut response = head_response.inner.union(response);
+        if let Some(resp) = body_resp {
+            response = response.union(resp.response);
         }
 
         self.handle_drag_and_drop_interaction(ui, item_id, false, &response, None);
