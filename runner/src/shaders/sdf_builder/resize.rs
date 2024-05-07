@@ -71,6 +71,12 @@ impl Resize for LineSegment {
     }
 }
 
+impl Resize for Plane {
+    fn resize(self, _initial: Vec2, _current: Vec2, _derivative: Vec2) -> Self {
+        self
+    }
+}
+
 impl Resize for Shape {
     fn resize(self, initial: Vec2, current: Vec2, derivative: Vec2) -> Self {
         match self {
@@ -79,6 +85,7 @@ impl Resize for Shape {
             Shape::Rectangle(shape) => shape.resize(initial, current, derivative).into(),
             Shape::Cross(shape) => shape.resize(initial, current, derivative).into(),
             Shape::LineSegment(shape) => shape.resize(initial, current, derivative).into(),
+            Shape::Plane(shape) => shape.resize(initial, current, derivative).into(),
         }
     }
 }

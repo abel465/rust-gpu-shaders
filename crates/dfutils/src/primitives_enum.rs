@@ -10,4 +10,5 @@ pub enum Shape {
     Rectangle(Rectangle),
     Cross(Cross),
     LineSegment(LineSegment),
+    Plane(Plane),
 }

@@ -299,6 +299,14 @@ impl Controller {
                     GrabType::None
                 }
             }
+            Shape::Plane(_) => {
+                if d < 0.001 {
+                    ctx.set_cursor_icon(CursorIcon::Grab);
+                    GrabType::Move
+                } else {
+                    GrabType::None
+                }
+            }
             _ => {
                 if d.abs() < 0.01 {
                     ctx.set_cursor_icon(self.choose_resize_cursor());
