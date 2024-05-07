@@ -307,6 +307,17 @@ impl Controller {
                     GrabType::None
                 }
             }
+            Shape::Ray(_) => {
+                if position.length() < 0.01 {
+                    ctx.set_cursor_icon(CursorIcon::Grab);
+                    GrabType::Move
+                } else if d.abs() < 0.01 {
+                    ctx.set_cursor_icon(self.choose_resize_cursor());
+                    GrabType::Resize
+                } else {
+                    GrabType::None
+                }
+            }
             _ => {
                 if d.abs() < 0.01 {
                     ctx.set_cursor_icon(self.choose_resize_cursor());

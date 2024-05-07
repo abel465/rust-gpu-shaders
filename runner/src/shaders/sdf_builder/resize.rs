@@ -77,6 +77,13 @@ impl Resize for Plane {
     }
 }
 
+impl Resize for Ray {
+    fn resize(mut self, _initial: Vec2, current: Vec2, _derivative: Vec2) -> Self {
+        self.direction = current.normalize();
+        self
+    }
+}
+
 impl Resize for Shape {
     fn resize(self, initial: Vec2, current: Vec2, derivative: Vec2) -> Self {
         match self {
@@ -86,6 +93,7 @@ impl Resize for Shape {
             Shape::Cross(shape) => shape.resize(initial, current, derivative).into(),
             Shape::LineSegment(shape) => shape.resize(initial, current, derivative).into(),
             Shape::Plane(shape) => shape.resize(initial, current, derivative).into(),
+            Shape::Ray(shape) => shape.resize(initial, current, derivative).into(),
         }
     }
 }

@@ -87,6 +87,12 @@ impl ShapeUi for Plane {
     }
 }
 
+impl ShapeUi for Ray {
+    fn ui(self, _ui: &mut egui::Ui) -> Self {
+        self
+    }
+}
+
 impl ShapeUi for Shape {
     fn ui(self, ui: &mut egui::Ui) -> Self {
         match self {
@@ -96,6 +102,7 @@ impl ShapeUi for Shape {
             Shape::Cross(shape) => shape.ui(ui).into(),
             Shape::LineSegment(shape) => shape.ui(ui).into(),
             Shape::Plane(shape) => shape.ui(ui).into(),
+            Shape::Ray(shape) => shape.ui(ui).into(),
         }
     }
 }
