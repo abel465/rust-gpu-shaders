@@ -3,7 +3,8 @@ use glam::*;
 #[cfg(not(feature = "std"))]
 use num_traits::Float;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Cross {
     pub length: f32,
     pub thickness: f32,

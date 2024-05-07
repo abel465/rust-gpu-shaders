@@ -1,19 +1,11 @@
 use crate::sdf::Sdf;
 use glam::{vec2, Vec2};
 
+#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
 #[derive(Clone, Copy, PartialEq)]
 pub struct LineSegment {
     pub a: Vec2,
     pub b: Vec2,
-}
-
-impl core::fmt::Debug for LineSegment {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Point")
-            .field("a", &self.a.to_array())
-            .field("b", &self.b.to_array())
-            .finish()
-    }
 }
 
 impl LineSegment {

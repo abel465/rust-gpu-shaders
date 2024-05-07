@@ -1,7 +1,8 @@
 use crate::primitives::*;
 
 #[cfg_attr(feature = "strum", derive(strum::EnumIter, strum::IntoStaticStr))]
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
+#[derive(Clone, Copy, PartialEq)]
 #[enum_dispatch::enum_dispatch(Sdf)]
 pub enum Shape {
     Disk(Disk),

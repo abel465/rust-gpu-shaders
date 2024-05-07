@@ -1,8 +1,9 @@
+use super::Disk;
 use crate::sdf::Sdf;
 use glam::Vec2;
-use super::Disk;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Torus {
     pub major_radius: f32,
     pub minor_radius: f32,

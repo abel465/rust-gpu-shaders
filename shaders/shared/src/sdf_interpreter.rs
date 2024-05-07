@@ -4,9 +4,9 @@ use spirv_std::glam::Vec2;
 
 #[cfg_attr(
     not(target_arch = "spirv"),
-    derive(strum::EnumIter, strum::IntoStaticStr)
+    derive(Debug, strum::EnumIter, strum::IntoStaticStr)
 )]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub enum Operator {
     Union,
     Intersect,
@@ -26,17 +26,10 @@ impl Operator {
     }
 }
 
+#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
 #[derive(Clone, Copy, PartialEq)]
 pub struct Transform {
     pub position: Vec2,
-}
-
-impl core::fmt::Debug for Transform {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("Transform")
-            .field("position", &self.position.to_array())
-            .finish()
-    }
 }
 
 impl Default for Transform {
@@ -57,7 +50,8 @@ impl<'a> SdfInstructions<'a> {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
+#[derive(Clone, Copy)]
 pub enum Instruction {
     Operator(Operator),
     Shape(Shape, Transform),
