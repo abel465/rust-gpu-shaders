@@ -2,7 +2,6 @@
 
 use dfutils::gridref::*;
 use push_constants::sdf_builder::ShaderConstants;
-use shared::sdf_2d as sdf;
 use shared::*;
 use spirv_std::glam::*;
 #[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
@@ -35,20 +34,6 @@ pub fn main_fs(
     };
     col *= 1.0 - (-6.0 * d.abs()).exp();
     col *= 0.8 + 0.2 * (150.0 * d).cos();
-
-    if constants.mouse_button_pressed.into() {
-        let cursor: Vec2 = constants.cursor.into();
-        let d = sdf(cursor, grid);
-        let p = uv - cursor;
-        col = col.lerp(
-            vec3(1.0, 1.0, 0.0),
-            smoothstep(
-                0.001,
-                0.0,
-                sdf::disk(p, 0.008).min(sdf::disk(p, d.abs()).abs()) - 0.0025,
-            ),
-        );
-    }
 
     *output = col.extend(1.0);
 }

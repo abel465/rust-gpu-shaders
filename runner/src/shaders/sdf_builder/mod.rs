@@ -12,16 +12,18 @@ use egui_winit::winit::{
 };
 use glam::*;
 use icons::TextureHandles;
+use instructions::{id_of_signed_distance, InstructionForId};
 use resize::Resize;
-use sdf_builder_tree::{Command, Item, SdfBuilderTree};
+use sdf_builder_tree::{Command, Item, ItemId, SdfBuilderTree, SelectedItem};
 use shared::{
     from_pixels,
     push_constants::sdf_builder::ShaderConstants,
     sdf_interpreter::{SdfInstructions, Transform},
 };
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 mod icons;
+mod instructions;
 mod resize;
 mod sdf_builder_tree;
 pub mod shape_ui;
@@ -66,13 +68,16 @@ pub struct Controller {
     grabbing: Option<Grabbing>,
     original_selected_item: Option<Item>,
     texture_handles: TextureHandles,
+    instructions_for_id: Vec<InstructionForId>,
+    last_mouse_press: (Vec2, std::time::Instant),
 }
 
 impl crate::controller::Controller for Controller {
     fn new(size: PhysicalSize<u32>) -> Self {
+        let now = Instant::now();
         Self {
             size,
-            start: Instant::now(),
+            start: now,
             shader_constants: ShaderConstants::zeroed(),
             grid: Grid::new(size.width as usize, size.height as usize),
             sdf_builder_tree: SdfBuilderTree::default(),
@@ -82,6 +87,8 @@ impl crate::controller::Controller for Controller {
             grabbing: None,
             original_selected_item: None,
             texture_handles: TextureHandles::empty(),
+            instructions_for_id: vec![],
+            last_mouse_press: (Vec2::ZERO, now),
         }
     }
 
@@ -151,11 +158,24 @@ impl crate::controller::Controller for Controller {
                             .get_selected_item()
                             .map(|item| item.clone());
                     }
+                    self.last_mouse_press = (self.cursor, Instant::now());
                     true
                 }
                 ElementState::Released => {
                     self.grab_type = GrabType::None;
                     self.grabbing = None;
+                    let (press_position, instant) = self.last_mouse_press;
+                    if press_position.distance_squared(self.cursor) < 4.0
+                        && instant.elapsed() < Duration::from_millis(300)
+                    {
+                        self.sdf_builder_tree.send_command(Command::SetSelectedItem(
+                            if let Some(item_id) = self.get_item_id_under_cursor() {
+                                item_id.into()
+                            } else {
+                                SelectedItem::NONE
+                            },
+                        ));
+                    }
                     false
                 }
             }
@@ -205,7 +225,8 @@ impl crate::controller::Controller for Controller {
 
         self.sdf_builder_tree.ui(ui, &self.texture_handles);
         if self.sdf_builder_tree.grid_needs_updating {
-            let instructions = self.sdf_builder_tree.generate_instructions();
+            let (instructions, instructions_for_id) = self.sdf_builder_tree.generate_instructions();
+            self.instructions_for_id = instructions_for_id;
             self.grid.update(&SdfInstructions::new(&instructions));
             if event_proxy.send_event(UserEvent::NewBuffersReady).is_err() {
                 panic!("Event loop dead");
@@ -279,7 +300,7 @@ impl Controller {
         }
     }
 
-    pub fn set_grab_type(&mut self, ctx: &Context, shape: Shape, position: Vec2) {
+    fn set_grab_type(&mut self, ctx: &Context, shape: Shape, position: Vec2) {
         let d = shape.signed_distance(position);
         self.grab_type = match shape {
             Shape::LineSegment(line_segment) => {
@@ -328,5 +349,9 @@ impl Controller {
                 }
             }
         }
+    }
+
+    fn get_item_id_under_cursor(&self) -> Option<ItemId> {
+        id_of_signed_distance(&self.instructions_for_id, self.cursor_from_pixels())
     }
 }

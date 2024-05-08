@@ -1,24 +1,27 @@
-pub struct Stack<const N: usize> {
-    pub buf: [f32; N],
+pub struct Stack<const N: usize, T> {
+    pub buf: [T; N],
     pub sp: usize,
 }
 
-impl<const N: usize> Stack<N> {
+impl<const N: usize, T> Stack<N, T>
+where
+    T: Default + Copy,
+{
     pub fn new() -> Self {
         Self {
-            buf: [0.0; N],
+            buf: [T::default(); N],
             sp: 0,
         }
     }
-    pub fn push(&mut self, x: f32) {
+    pub fn push(&mut self, x: T) {
         self.buf[self.sp] = x;
         self.sp += 1;
     }
-    pub fn pop(&mut self) -> f32 {
+    pub fn pop(&mut self) -> T {
         self.sp -= 1;
         self.buf[self.sp]
     }
-    pub fn peek(&self) -> f32 {
+    pub fn peek(&self) -> T {
         self.buf[self.sp - 1]
     }
 }

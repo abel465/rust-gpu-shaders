@@ -92,14 +92,14 @@ pub struct OpCodeStruct {
 }
 
 pub struct Interpreter<const STACK_SIZE: usize> {
-    stack: Stack<STACK_SIZE>,
+    stack: Stack<STACK_SIZE, f32>,
     p: Vec2,
 }
 
 impl<const STACK_SIZE: usize> Interpreter<STACK_SIZE> {
     pub fn new(p: Vec2) -> Self {
         Self {
-            stack: Stack::<STACK_SIZE>::new(),
+            stack: Stack::<STACK_SIZE, f32>::new(),
             p,
         }
     }

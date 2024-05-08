@@ -1,3 +1,4 @@
+use super::instructions::InstructionForId;
 use super::{icons::TextureHandles, shape_ui::ShapeUi};
 use dfutils::primitives_enum::Shape;
 use egui::{load::SizedTexture, NumExt as _, TextureHandle};
@@ -7,7 +8,7 @@ use shared::sdf_interpreter::{Instruction, Operator, Transform};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
-#[derive(Hash, Clone, Copy, PartialEq, Eq)]
+#[derive(Hash, Clone, Copy, PartialEq, Eq, Default)]
 pub struct ItemId(u32);
 
 impl ItemId {
@@ -62,7 +63,7 @@ impl From<ItemId> for SelectedItem {
 }
 
 impl SelectedItem {
-    const NONE: Self = SelectedItem {
+    pub const NONE: Self = SelectedItem {
         id: None,
         new_item: None,
     };
@@ -70,53 +71,6 @@ impl SelectedItem {
         SelectedItem {
             id: Some(id),
             new_item: Some(item),
-        }
-    }
-}
-
-impl SdfBuilderTree {
-    pub fn generate_instructions(&self) -> Vec<Instruction> {
-        let mut instructions = vec![];
-        self.generate_instructions_impl(&self.root_id, &mut instructions);
-        instructions
-    }
-
-    fn generate_instructions_impl(&self, id: &ItemId, instructions: &mut Vec<Instruction>) -> bool {
-        if let Some(item) = self.items.get(id) {
-            match item {
-                Item::Operator(op, ids) => {
-                    let mut items = ids.iter().rev();
-                    let mut r1 = false;
-                    while !r1 {
-                        if let Some(next_id) = items.next() {
-                            r1 = self.generate_instructions_impl(next_id, instructions);
-                        } else {
-                            return false;
-                        }
-                    }
-                    let mut r2 = false;
-                    while !r2 {
-                        if let Some(next_id) = items.next() {
-                            r2 = self.generate_instructions_impl(next_id, instructions);
-                        } else {
-                            return true;
-                        }
-                    }
-                    instructions.push(Instruction::Operator(*op));
-                    for next_id in items {
-                        if self.generate_instructions_impl(next_id, instructions) {
-                            instructions.push(Instruction::Operator(*op));
-                        }
-                    }
-                    true
-                }
-                Item::Shape(shape, transform) => {
-                    instructions.push(Instruction::Shape(*shape, *transform));
-                    true
-                }
-            }
-        } else {
-            false
         }
     }
 }
@@ -790,6 +744,64 @@ impl SdfBuilderTree {
             } else {
                 self.send_command(Command::HighlightTargetContainer(self.root_id));
             }
+        }
+    }
+}
+
+//
+// Instruction generation
+//
+impl SdfBuilderTree {
+    pub fn generate_instructions(&self) -> (Vec<Instruction>, Vec<InstructionForId>) {
+        let mut instructions_for_id = Vec::with_capacity(self.items.len());
+        self.generate_instructions_for_id(&self.root_id, &mut instructions_for_id);
+        let instructions = instructions_for_id
+            .iter()
+            .map(|instruction_for_id| (*instruction_for_id).into())
+            .collect();
+        (instructions, instructions_for_id)
+    }
+
+    fn generate_instructions_for_id(
+        &self,
+        id: &ItemId,
+        instructions: &mut Vec<InstructionForId>,
+    ) -> bool {
+        if let Some(item) = self.items.get(id) {
+            match item {
+                Item::Operator(op, ids) => {
+                    let mut items = ids.iter().rev();
+                    let mut r1 = false;
+                    while !r1 {
+                        if let Some(next_id) = items.next() {
+                            r1 = self.generate_instructions_for_id(next_id, instructions);
+                        } else {
+                            return false;
+                        }
+                    }
+                    let mut r2 = false;
+                    while !r2 {
+                        if let Some(next_id) = items.next() {
+                            r2 = self.generate_instructions_for_id(next_id, instructions);
+                        } else {
+                            return true;
+                        }
+                    }
+                    instructions.push(InstructionForId::Operator(*op, *id));
+                    for next_id in items {
+                        if self.generate_instructions_for_id(next_id, instructions) {
+                            instructions.push(InstructionForId::Operator(*op, *id));
+                        }
+                    }
+                    true
+                }
+                Item::Shape(shape, transform) => {
+                    instructions.push(InstructionForId::Shape(*shape, *id, *transform));
+                    true
+                }
+            }
+        } else {
+            false
         }
     }
 }

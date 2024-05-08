@@ -62,7 +62,7 @@ impl<'a> dfutils::sdf::Sdf for SdfInstructions<'a> {
         if self.instructions.is_empty() {
             return f32::INFINITY;
         }
-        let mut stack = Stack::<8>::new();
+        let mut stack = Stack::<8, f32>::new();
         for instruction in self.instructions {
             match instruction {
                 Instruction::Operator(op) => {
