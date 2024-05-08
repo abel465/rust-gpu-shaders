@@ -2,9 +2,13 @@ use super::instructions::InstructionForId;
 use super::{icons::TextureHandles, shape_ui::ShapeUi};
 use dfutils::primitives_enum::Shape;
 use egui::{load::SizedTexture, NumExt as _, TextureHandle};
+use egui_winit::winit::dpi::PhysicalSize;
 use glam::*;
 use itertools::izip;
-use shared::sdf_interpreter::{Instruction, Operator, Transform};
+use shared::{
+    from_pixels,
+    sdf_interpreter::{Instruction, Operator, Transform},
+};
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
@@ -127,6 +131,8 @@ pub struct SdfBuilderTree {
     command_sender: std::sync::mpsc::Sender<Command>,
 
     pub grid_needs_updating: bool,
+
+    extra_item: Option<(Shape, Transform)>,
 }
 
 impl Default for SdfBuilderTree {
@@ -144,6 +150,7 @@ impl Default for SdfBuilderTree {
             command_receiver,
             command_sender,
             grid_needs_updating: true,
+            extra_item: None,
         };
 
         res.populate();
@@ -157,7 +164,7 @@ impl Default for SdfBuilderTree {
 //
 impl SdfBuilderTree {
     fn populate(&mut self) {
-        self.add_leaf(self.root_id, Shape::Rectangle(Default::default()));
+        // self.add_leaf(self.root_id, Shape::Rectangle(Default::default()));
     }
 
     pub fn get_selected_item(&self) -> Option<&Item> {
@@ -285,6 +292,7 @@ impl SdfBuilderTree {
         None
     }
 
+    #[allow(dead_code)]
     fn add_leaf(&mut self, parent_id: ItemId, shape: Shape) {
         let id = ItemId::new();
 
@@ -305,7 +313,7 @@ impl SdfBuilderTree {
 // UI stuff
 //
 impl SdfBuilderTree {
-    pub fn ui(&mut self, ui: &mut egui::Ui, icons: &TextureHandles) {
+    pub fn ui(&mut self, ui: &mut egui::Ui, icons: &TextureHandles, size: PhysicalSize<u32>) {
         self.shapes_ui(ui, &icons.shapes);
         ui.separator();
         self.operators_ui(ui, &icons.operators);
@@ -318,6 +326,8 @@ impl SdfBuilderTree {
                 self.container_children_ui(ui, top_level_items);
             }
         }
+
+        self.handle_extra_item(ui, size);
 
         // deselect by clicking in the empty space
         if ui
@@ -755,10 +765,18 @@ impl SdfBuilderTree {
     pub fn generate_instructions(&self) -> (Vec<Instruction>, Vec<InstructionForId>) {
         let mut instructions_for_id = Vec::with_capacity(self.items.len());
         self.generate_instructions_for_id(&self.root_id, &mut instructions_for_id);
-        let instructions = instructions_for_id
+        let mut instructions: Vec<_> = instructions_for_id
             .iter()
             .map(|instruction_for_id| (*instruction_for_id).into())
             .collect();
+        if let Some((shape, transform)) = self.extra_item {
+            if instructions.is_empty() {
+                instructions.push(Instruction::Shape(shape, transform));
+            } else {
+                instructions.push(Instruction::Shape(shape, transform));
+                instructions.push(Instruction::Operator(Operator::Union));
+            }
+        }
         (instructions, instructions_for_id)
     }
 
@@ -802,6 +820,38 @@ impl SdfBuilderTree {
             }
         } else {
             false
+        }
+    }
+
+    fn handle_extra_item(&mut self, ui: &mut egui::Ui, size: PhysicalSize<u32>) {
+        let extra_item =
+            if !ui.ui_contains_pointer() && egui::DragAndDrop::has_any_payload(ui.ctx()) {
+                if let Some(Item::Shape(shape, _)) = self.selected_item.new_item {
+                    ui.input(|i| i.pointer.latest_pos()).and_then(|pos| {
+                        let transform = Transform {
+                            position: from_pixels(vec2(pos.x, pos.y), size.into()),
+                        };
+                        Some((shape, transform))
+                    })
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+        if extra_item != self.extra_item {
+            self.extra_item = extra_item;
+            self.grid_needs_updating = true;
+        }
+        if ui.input(|i| i.pointer.primary_released()) {
+            if let Some((shape, transform)) = self.extra_item {
+                self.add_item(
+                    Item::Shape(shape, transform),
+                    self.selected_item.id.unwrap(),
+                    self.root_id,
+                    0,
+                );
+            }
         }
     }
 }

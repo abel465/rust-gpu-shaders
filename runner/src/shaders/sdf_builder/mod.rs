@@ -223,7 +223,8 @@ impl crate::controller::Controller for Controller {
             ctx.set_cursor_icon(CursorIcon::Default);
         }
 
-        self.sdf_builder_tree.ui(ui, &self.texture_handles);
+        self.sdf_builder_tree
+            .ui(ui, &self.texture_handles, self.size);
         if self.sdf_builder_tree.grid_needs_updating {
             let (instructions, instructions_for_id) = self.sdf_builder_tree.generate_instructions();
             self.instructions_for_id = instructions_for_id;
