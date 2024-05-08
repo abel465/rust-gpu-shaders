@@ -882,17 +882,27 @@ impl SdfBuilderTree {
                             } else {
                                 return;
                             };
-                            self.items.insert(
-                                container_op_id,
-                                Item::Operator(
-                                    self.operator_mode,
-                                    vec![container_union_id, item_id],
-                                ),
-                            );
-                            self.items.insert(
-                                container_union_id,
-                                Item::Operator(Operator::Union, current_root_items),
-                            );
+                            if current_root_items.len() == 1 {
+                                self.items.insert(
+                                    container_op_id,
+                                    Item::Operator(
+                                        self.operator_mode,
+                                        vec![current_root_items[0], item_id],
+                                    ),
+                                );
+                            } else {
+                                self.items.insert(
+                                    container_op_id,
+                                    Item::Operator(
+                                        self.operator_mode,
+                                        vec![container_union_id, item_id],
+                                    ),
+                                );
+                                self.items.insert(
+                                    container_union_id,
+                                    Item::Operator(Operator::Union, current_root_items),
+                                );
+                            }
                             self.items.insert(item_id, Item::Shape(shape, transform));
                         }
                     }
