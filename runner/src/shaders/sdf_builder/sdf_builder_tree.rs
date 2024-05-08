@@ -133,6 +133,8 @@ pub struct SdfBuilderTree {
     pub grid_needs_updating: bool,
 
     extra_item: Option<(Shape, Transform)>,
+
+    operator_mode: Operator,
 }
 
 impl Default for SdfBuilderTree {
@@ -151,6 +153,7 @@ impl Default for SdfBuilderTree {
             command_sender,
             grid_needs_updating: true,
             extra_item: None,
+            operator_mode: Operator::Union,
         };
 
         res.populate();
@@ -422,7 +425,7 @@ impl SdfBuilderTree {
             });
     }
 
-    fn operators_ui(&self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
+    fn operators_ui(&mut self, ui: &mut egui::Ui, icons: &[TextureHandle]) {
         egui::Grid::new("operator_icons_grid").show(ui, |ui| {
             for (operator, icon, end_row) in
                 izip!(Operator::iter(), icons, [false, true].into_iter().cycle())
@@ -441,9 +444,16 @@ impl SdfBuilderTree {
                         ui.interact(rect, egui::Id::new(label), egui::Sense::click_and_drag())
                     })
                     .inner;
-                if response.hovered() {
-                    frame.frame.stroke = egui::Stroke::new(1.0, egui::Color32::DARK_GRAY);
+                if response.clicked() {
+                    self.operator_mode = operator;
                 }
+                frame.frame.stroke = if self.operator_mode == operator {
+                    egui::Stroke::new(2.0, egui::Color32::LIGHT_RED)
+                } else if response.hovered() {
+                    egui::Stroke::new(1.0, egui::Color32::DARK_GRAY)
+                } else {
+                    egui::Stroke::NONE
+                };
                 frame.end(ui);
                 self.handle_new_item_drag(ui, &response, operator.into());
                 if end_row {
@@ -763,7 +773,8 @@ impl SdfBuilderTree {
 //
 impl SdfBuilderTree {
     pub fn generate_instructions(&self) -> (Vec<Instruction>, Vec<InstructionForId>) {
-        let mut instructions_for_id = Vec::with_capacity(self.items.len());
+        let capacity = self.items.len() + self.extra_item.is_some() as usize;
+        let mut instructions_for_id = Vec::with_capacity(capacity);
         self.generate_instructions_for_id(&self.root_id, &mut instructions_for_id);
         let mut instructions: Vec<_> = instructions_for_id
             .iter()
@@ -773,8 +784,8 @@ impl SdfBuilderTree {
             if instructions.is_empty() {
                 instructions.push(Instruction::Shape(shape, transform));
             } else {
-                instructions.push(Instruction::Shape(shape, transform));
-                instructions.push(Instruction::Operator(Operator::Union));
+                instructions.insert(0, Instruction::Shape(shape, transform));
+                instructions.push(Instruction::Operator(self.operator_mode));
             }
         }
         (instructions, instructions_for_id)
@@ -839,19 +850,58 @@ impl SdfBuilderTree {
             } else {
                 None
             };
+        if ui.input(|i| i.pointer.primary_released()) {
+            if let Some((shape, transform)) = self.extra_item {
+                match self.operator_mode {
+                    Operator::Union => {
+                        self.add_item(
+                            Item::Shape(shape, transform),
+                            self.selected_item.id.unwrap(),
+                            self.root_id,
+                            0,
+                        );
+                    }
+                    _ => {
+                        if self.items.len() <= 1 {
+                            self.add_item(
+                                Item::Shape(shape, transform),
+                                self.selected_item.id.unwrap(),
+                                self.root_id,
+                                0,
+                            );
+                        } else {
+                            let container_op_id = ItemId::new();
+                            let container_union_id = ItemId::new();
+                            let item_id = self.selected_item.id.unwrap();
+                            let current_root_items = if let Some(Item::Operator(_, children)) =
+                                self.items.get_mut(&self.root_id)
+                            {
+                                let copy = children.clone();
+                                *children = vec![container_op_id];
+                                copy
+                            } else {
+                                return;
+                            };
+                            self.items.insert(
+                                container_op_id,
+                                Item::Operator(
+                                    self.operator_mode,
+                                    vec![container_union_id, item_id],
+                                ),
+                            );
+                            self.items.insert(
+                                container_union_id,
+                                Item::Operator(Operator::Union, current_root_items),
+                            );
+                            self.items.insert(item_id, Item::Shape(shape, transform));
+                        }
+                    }
+                }
+            }
+        }
         if extra_item != self.extra_item {
             self.extra_item = extra_item;
             self.grid_needs_updating = true;
-        }
-        if ui.input(|i| i.pointer.primary_released()) {
-            if let Some((shape, transform)) = self.extra_item {
-                self.add_item(
-                    Item::Shape(shape, transform),
-                    self.selected_item.id.unwrap(),
-                    self.root_id,
-                    0,
-                );
-            }
         }
     }
 }

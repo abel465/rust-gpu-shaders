@@ -6,7 +6,7 @@ use spirv_std::glam::Vec2;
     not(target_arch = "spirv"),
     derive(Debug, strum::EnumIter, strum::IntoStaticStr)
 )]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub enum Operator {
     Union,
     Intersect,
