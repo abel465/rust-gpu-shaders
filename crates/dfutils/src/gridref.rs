@@ -46,7 +46,7 @@ impl<'a> GridRefMut<'a> {
     }
 
     pub fn as_ref(&self) -> GridRef<'_> {
-        GridRef::new(self.w, self.h, &self.buffer)
+        GridRef::new(self.w, self.h, self.buffer)
     }
 
     pub fn aspect_ratio(&self) -> f32 {

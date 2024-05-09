@@ -9,7 +9,7 @@ pub enum Shape {
     Torus(Torus),
     Rectangle(Rectangle),
     Cross(Cross),
-    LineSegment(LineSegment),
     Plane(Plane),
     Ray(Ray),
+    LineSegment(LineSegment),
 }
