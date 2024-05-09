@@ -170,6 +170,20 @@ impl SdfBuilderTree {
         // self.add_leaf(self.root_id, Shape::Rectangle(Default::default()));
     }
 
+    fn get_root_children(&self) -> &Vec<ItemId> {
+        let Some(Item::Operator(_, children)) = self.items.get(&self.root_id) else {
+            panic!("no root")
+        };
+        children
+    }
+
+    fn get_root_children_mut(&mut self) -> &mut Vec<ItemId> {
+        let Some(Item::Operator(_, children)) = self.items.get_mut(&self.root_id) else {
+            panic!("no root")
+        };
+        children
+    }
+
     pub fn get_selected_item(&self) -> Option<&Item> {
         self.selected_item.id.and_then(|id| self.items.get(&id))
     }
@@ -322,12 +336,11 @@ impl SdfBuilderTree {
         self.operators_ui(ui, &icons.operators);
         ui.separator();
 
-        if let Some(top_level_items) = self.container(self.root_id) {
-            if top_level_items.is_empty() {
-                self.root_drop_target(ui);
-            } else {
-                self.container_children_ui(ui, top_level_items);
-            }
+        let top_level_items = self.get_root_children();
+        if top_level_items.is_empty() {
+            self.root_drop_target(ui);
+        } else {
+            self.container_children_ui(ui, top_level_items);
         }
 
         self.handle_extra_item(ui, size);
@@ -816,10 +829,20 @@ impl SdfBuilderTree {
                             return true;
                         }
                     }
-                    instructions.push(InstructionForId::Operator(*op, *id));
+                    let op_to_add = if *op == Operator::Subtract {
+                        Operator::Union
+                    } else {
+                        *op
+                    };
+                    instructions.push(InstructionForId::Operator(op_to_add, *id));
                     for next_id in items {
                         if self.generate_instructions_for_id(next_id, instructions) {
-                            instructions.push(InstructionForId::Operator(*op, *id));
+                            instructions.push(InstructionForId::Operator(op_to_add, *id));
+                        }
+                    }
+                    if *op == Operator::Subtract {
+                        if let Some(InstructionForId::Operator(op, _)) = instructions.last_mut() {
+                            *op = Operator::Subtract;
                         }
                     }
                     true
@@ -852,45 +875,40 @@ impl SdfBuilderTree {
             };
         if ui.input(|i| i.pointer.primary_released()) {
             if let Some((shape, transform)) = self.extra_item {
+                let item_id = self.selected_item.id.unwrap();
                 match self.operator_mode {
                     Operator::Union => {
-                        self.add_item(
-                            Item::Shape(shape, transform),
-                            self.selected_item.id.unwrap(),
-                            self.root_id,
-                            0,
-                        );
+                        self.get_root_children_mut().push(item_id);
                     }
                     _ => {
-                        if self.items.len() <= 1 {
-                            self.add_item(
-                                Item::Shape(shape, transform),
-                                self.selected_item.id.unwrap(),
-                                self.root_id,
-                                0,
-                            );
+                        let children = self.get_root_children().clone();
+                        if children.is_empty() {
+                            self.get_root_children_mut().push(item_id);
                         } else {
                             let container_op_id = ItemId::new();
-                            let container_union_id = ItemId::new();
-                            let item_id = self.selected_item.id.unwrap();
-                            let current_root_items = if let Some(Item::Operator(_, children)) =
-                                self.items.get_mut(&self.root_id)
-                            {
-                                let copy = children.clone();
-                                *children = vec![container_op_id];
-                                copy
+                            if children.len() == 1 {
+                                let child = children[0];
+                                let same_op =
+                                    if let Some(Item::Operator(op, _)) = self.items.get(&child) {
+                                        *op == self.operator_mode
+                                    } else {
+                                        false
+                                    };
+                                if same_op {
+                                    if let Some(Item::Operator(_, children)) =
+                                        self.items.get_mut(&child)
+                                    {
+                                        children.push(item_id);
+                                    }
+                                } else {
+                                    self.get_root_children_mut()[0] = container_op_id;
+                                    self.items.insert(
+                                        container_op_id,
+                                        Item::Operator(self.operator_mode, vec![child, item_id]),
+                                    );
+                                }
                             } else {
-                                return;
-                            };
-                            if current_root_items.len() == 1 {
-                                self.items.insert(
-                                    container_op_id,
-                                    Item::Operator(
-                                        self.operator_mode,
-                                        vec![current_root_items[0], item_id],
-                                    ),
-                                );
-                            } else {
+                                let container_union_id = ItemId::new();
                                 self.items.insert(
                                     container_op_id,
                                     Item::Operator(
@@ -900,13 +918,16 @@ impl SdfBuilderTree {
                                 );
                                 self.items.insert(
                                     container_union_id,
-                                    Item::Operator(Operator::Union, current_root_items),
+                                    Item::Operator(Operator::Union, children),
                                 );
+                                let children = self.get_root_children_mut();
+                                children.truncate(1);
+                                children[0] = container_op_id;
                             }
-                            self.items.insert(item_id, Item::Shape(shape, transform));
                         }
                     }
                 }
+                self.items.insert(item_id, Item::Shape(shape, transform));
             }
         }
         if extra_item != self.extra_item {
