@@ -16,7 +16,7 @@ pub fn intersection(a: f32, b: f32) -> f32 {
 
 /// The set of elements which are in `a` but not in `b`
 pub fn difference(a: f32, b: f32) -> f32 {
-    intersection(-a, b)
+    intersection(a, -b)
 }
 
 /// The set of elements which are in either `a` or `b`, but not both
