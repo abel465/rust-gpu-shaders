@@ -126,13 +126,11 @@ impl crate::controller::Controller for Controller {
                 },
                 GrabType::Resize => match item {
                     Item::Shape(shape, transform) => Item::Shape(
-                        shape
-                            .resize(
-                                position - transform.position,
-                                cursor - transform.position,
-                                derivative,
-                            )
-                            .into(),
+                        shape.resize(
+                            position - transform.position,
+                            cursor - transform.position,
+                            derivative,
+                        ),
                         *transform,
                     ),
                     _ => todo!(),
@@ -153,10 +151,8 @@ impl crate::controller::Controller for Controller {
                             self.cursor_from_pixels(),
                             self.derivative_at_cursor(),
                         ));
-                        self.original_selected_item = self
-                            .sdf_builder_tree
-                            .get_selected_item()
-                            .map(|item| item.clone());
+                        self.original_selected_item =
+                            self.sdf_builder_tree.get_selected_item().cloned();
                     }
                     self.last_mouse_press = (self.cursor, Instant::now());
                     true
@@ -212,11 +208,8 @@ impl crate::controller::Controller for Controller {
                 GrabType::None => {}
             }
         } else if let Some(item) = &self.sdf_builder_tree.get_selected_item() {
-            match item {
-                Item::Shape(shape, transform) => {
-                    self.set_grab_type(ctx, *shape, self.cursor_from_pixels() - transform.position);
-                }
-                _ => {}
+            if let Item::Shape(shape, transform) = item {
+                self.set_grab_type(ctx, *shape, self.cursor_from_pixels() - transform.position);
             }
         } else {
             self.grab_type = GrabType::None;

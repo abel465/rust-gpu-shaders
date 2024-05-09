@@ -24,22 +24,12 @@ pub struct Uniform<'a> {
     pub data: &'a [u8],
 }
 
+#[derive(Default)]
 pub struct BufferData<'a> {
     pub vertex: Option<&'a [Vertex]>,
     pub index: Option<&'a [u32]>,
     pub bind_group_buffers: Vec<BindGroupBufferType<'a>>,
     pub use_depth_buffer: bool,
-}
-
-impl<'a> Default for BufferData<'a> {
-    fn default() -> Self {
-        Self {
-            vertex: None,
-            index: None,
-            bind_group_buffers: Vec::new(),
-            use_depth_buffer: false,
-        }
-    }
 }
 
 pub trait Controller {

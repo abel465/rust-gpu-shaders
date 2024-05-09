@@ -524,7 +524,7 @@ impl SdfBuilderTree {
         let mut response = head_response.inner.union(response);
         if children.is_empty() {
             if let Some(resp) = &body_resp {
-                response.rect = response.rect.union(resp.response.rect.clone());
+                response.rect = response.rect.union(resp.response.rect);
             }
         }
 
@@ -857,15 +857,15 @@ impl SdfBuilderTree {
         }
     }
 
-    fn handle_extra_item(&mut self, ui: &mut egui::Ui, size: PhysicalSize<u32>) {
+    fn handle_extra_item(&mut self, ui: &egui::Ui, size: PhysicalSize<u32>) {
         let extra_item =
             if !ui.ui_contains_pointer() && egui::DragAndDrop::has_any_payload(ui.ctx()) {
                 if let Some(Item::Shape(shape, _)) = self.selected_item.new_item {
-                    ui.input(|i| i.pointer.latest_pos()).and_then(|pos| {
+                    ui.input(|i| i.pointer.latest_pos()).map(|pos| {
                         let transform = Transform {
                             position: from_pixels(vec2(pos.x, pos.y), size.into()),
                         };
-                        Some((shape, transform))
+                        (shape, transform)
                     })
                 } else {
                     None

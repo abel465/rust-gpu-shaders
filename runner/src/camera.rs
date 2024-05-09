@@ -74,7 +74,7 @@ impl FirstPersonCamera {
 
     pub fn rotate(&mut self, v: Vec2) {
         self.pitch = (self.pitch - v.y * 2.0).clamp(-PI / 3.0, PI / 3.0);
-        self.yaw = self.yaw - v.x * 3.0;
+        self.yaw -= v.x * 3.0;
     }
 
     pub fn resize(&mut self, size: PhysicalSize<u32>) {

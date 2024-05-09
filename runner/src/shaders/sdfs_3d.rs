@@ -99,7 +99,7 @@ impl crate::controller::Controller for Controller {
             let rd = rm
                 .mul_vec3(from_pixels(self.cursor, self.size.into()).extend(1.0))
                 .normalize();
-            self.can_drag = self.params[self.shape as usize].ps[0..num_points as usize]
+            self.can_drag = self.params[self.shape as usize].ps[0..num_points]
                 .iter()
                 .position(|p| ray_intersect_sphere(ro, rd, (*p).into(), 0.01));
         }
@@ -171,7 +171,7 @@ impl crate::controller::Controller for Controller {
         self.repeat_z.ui(ui, "Repeat Z", 0.01..=1.0, 0.01);
         let params = &mut self.params[self.shape as usize];
         let labels = self.shape.labels();
-        if labels.len() > 0 {
+        if !labels.is_empty() {
             ui.separator();
         }
         for i in 0..labels.len() {
@@ -179,9 +179,9 @@ impl crate::controller::Controller for Controller {
             let range = ranges[i].clone();
             let speed = (range.end() - range.start()) * 0.02;
             ui.horizontal(|ui| {
-                ui.label(labels[i as usize]);
+                ui.label(labels[i]);
                 ui.add(
-                    egui::DragValue::new(&mut params.dims[i as usize])
+                    egui::DragValue::new(&mut params.dims[i])
                         .clamp_range(range)
                         .speed(speed),
                 );

@@ -54,7 +54,7 @@ impl Ui {
 
     pub fn consumes_event(&mut self, window: &Window, event: &WindowEvent) -> bool {
         self.egui_winit_state
-            .on_window_event(window, &event)
+            .on_window_event(window, event)
             .consumed
     }
 
@@ -65,12 +65,12 @@ impl Ui {
         controller: &mut dyn Controller,
     ) -> (Vec<ClippedPrimitive>, TexturesDelta) {
         ui_state.fps = self.fps_counter.tick();
-        let raw_input = self.egui_winit_state.take_egui_input(&window);
+        let raw_input = self.egui_winit_state.take_egui_input(window);
         let full_output = self.egui_winit_state.egui_ctx().run(raw_input, |ctx| {
             self.ui(ctx, ui_state, controller);
         });
         self.egui_winit_state
-            .handle_platform_output(&window, full_output.platform_output);
+            .handle_platform_output(window, full_output.platform_output);
         let clipped_primitives = self
             .egui_winit_state
             .egui_ctx()
@@ -94,10 +94,9 @@ impl Ui {
                         if ui
                             .selectable_label(ui_state.active_shader == shader, shader.to_string())
                             .clicked()
+                            && ui_state.active_shader != shader
                         {
-                            if ui_state.active_shader != shader {
-                                self.send_event(UserEvent::SwitchShader(shader));
-                            }
+                            self.send_event(UserEvent::SwitchShader(shader));
                         }
                     }
                 });

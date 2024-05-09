@@ -27,13 +27,13 @@ async fn run(options: Options, window: Window, compiled_shader_modules: Compiled
 
         match event {
             Event::WindowEvent { event, window_id }
-                if window_id == window.id() && !app.ui_consumes_event(&window, &event) =>
+                if window_id == window.id() && !app.ui_consumes_event(window, &event) =>
             {
                 match event {
                     WindowEvent::RedrawRequested => {
                         window.request_redraw();
 
-                        if let Err(wgpu::SurfaceError::OutOfMemory) = app.update_and_render(&window)
+                        if let Err(wgpu::SurfaceError::OutOfMemory) = app.update_and_render(window)
                         {
                             event_loop_window_target.exit()
                         }
@@ -92,9 +92,8 @@ async fn run(options: Options, window: Window, compiled_shader_modules: Compiled
             _ => {}
         }
     });
-    match exit {
-        Result::Err(e) => eprintln!("Event loop Error: {e}"),
-        Ok(()) => {}
+    if let Result::Err(e) = exit {
+        eprintln!("Event loop Error: {e}")
     }
 }
 
@@ -145,7 +144,7 @@ pub fn start(options: Options) {
             ));
         } else {
             futures::executor::block_on(run(
-                options.clone(),
+                options,
                 window,
                 initial_shader,
             ));

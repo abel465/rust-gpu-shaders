@@ -24,6 +24,7 @@
         "rustc-dev"
         "llvm-tools-preview"
         "cargo"
+        "clippy"
         "rustc"
       ];
       rustPlatform = pkgs.makeRustPlatform {

@@ -45,9 +45,9 @@ pub enum Shape {
 impl Shape {
     fn labels(self) -> &'static [&'static str] {
         use Shape::*;
-        const R: &'static str = "Radius";
-        const W: &'static str = "Width";
-        const H: &'static str = "Height";
+        const R: &str = "Radius";
+        const W: &str = "Width";
+        const H: &str = "Height";
         match self {
             Disk => &[R],
             SierpinskiTriangle | KochSnowflake | RegularPolygon => &[R, "N"],
@@ -120,15 +120,11 @@ impl Shape {
     fn default_params(&self) -> Params {
         let default_ps = self.default_points();
         let mut ps = [[1e10; 2]; MAX_NUM_POINTS];
-        for i in 0..default_ps.len() {
-            ps[i] = default_ps[i];
-        }
+        ps[..default_ps.len()].copy_from_slice(default_ps);
 
         let default_dims = self.default_dims();
         let mut dims = [0.0; 3];
-        for i in 0..default_dims.len() {
-            dims[i] = default_dims[i];
-        }
+        dims[..default_dims.len()].copy_from_slice(default_dims);
 
         Params {
             shape: *self,
@@ -173,9 +169,9 @@ impl From<Repetition> for RepetitionData {
         };
         RepetitionData {
             current: rep.current,
-            dim: dim.into(),
-            n1: n1.into(),
-            n2: n2.into(),
+            dim,
+            n1,
+            n2,
         }
     }
 }
@@ -270,7 +266,7 @@ impl crate::controller::Controller for Controller {
             )
             .into();
         } else if num_points > 0 {
-            self.can_drag = self.params[self.shape as usize].ps[0..num_points as usize]
+            self.can_drag = self.params[self.shape as usize].ps[0..num_points]
                 .iter()
                 .position(|p| {
                     (rotate((*p).into(), -self.params[self.shape as usize].rot)
@@ -339,7 +335,7 @@ impl crate::controller::Controller for Controller {
         {
             let params = &mut self.params[self.shape as usize];
             let labels = self.shape.labels();
-            if labels.len() > 0 {
+            if !labels.is_empty() {
                 ui.separator();
             }
             for i in 0..labels.len() {

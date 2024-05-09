@@ -127,7 +127,7 @@ impl RenderPass {
                 occlusion_query_set: None,
                 timestamp_writes: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &output_view,
+                    view: output_view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(if self.index_buffer.is_some() {
@@ -197,7 +197,7 @@ impl RenderPass {
 
         for (id, delta) in &textures_delta.set {
             self.ui_renderer
-                .update_texture(&ctx.device, &ctx.queue, *id, &delta);
+                .update_texture(&ctx.device, &ctx.queue, *id, delta);
         }
 
         let mut encoder = ctx
@@ -220,7 +220,7 @@ impl RenderPass {
                 occlusion_query_set: None,
                 timestamp_writes: None,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &output_view,
+                    view: output_view,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
