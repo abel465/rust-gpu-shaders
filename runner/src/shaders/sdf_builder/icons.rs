@@ -1,6 +1,6 @@
 use dfutils::{grid::Grid, primitives::Disk, primitives_enum::Shape};
 use egui::{Color32, ColorImage, TextureHandle};
-use glam::{vec2, vec3};
+use glam::{vec2, vec3, Vec3};
 use shared::sdf_interpreter::{Instruction, Operator, SdfInstructions, Transform};
 use strum::IntoEnumIterator;
 
@@ -78,11 +78,12 @@ fn get_instructions(op: Operator) -> [Instruction; 3] {
 
 fn color_from_distance(d: f32) -> Color32 {
     let col = 255.0
-        * (1.0 - (-6.0 * d.abs()).exp())
-        * (if d < 0.0 {
-            vec3(0.65, 0.85, 1.0)
-        } else {
-            vec3(0.9, 0.6, 0.3)
-        });
+        * ((1.0 - (-6.0 * d.abs()).exp())
+            * (if d < 0.0 {
+                vec3(0.65, 0.85, 1.0)
+            } else {
+                vec3(0.9, 0.6, 0.3)
+            }))
+        .lerp(Vec3::ONE, 1.0 - shared::smoothstep(0.0, 0.02, d.abs()));
     Color32::from_rgb(col.x as u8, col.y as u8, col.z as u8)
 }
