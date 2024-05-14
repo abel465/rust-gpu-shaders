@@ -53,7 +53,9 @@ impl crate::controller::Controller for Controller {
             shader_constants: ShaderConstants::zeroed(),
             buffers: (
                 vec![Vertex::zeroed(); I_MAX * J_MAX * 4],
-                vec![0; I_MAX * J_MAX * 6],
+                (0..(I_MAX * J_MAX) as u32)
+                    .flat_map(|i| [0, 1, 3, 0, 2, 3].map(|x| x + i * 4))
+                    .collect(),
             ),
             camera: RotationCamera::new(size.width as f32 / size.height as f32, 2.0),
             l,
@@ -293,15 +295,6 @@ impl Controller {
                 };
                 *vertex = f(theta, phi)
             });
-
-        for i in 0..I_MAX * J_MAX {
-            self.buffers.1[6 * i + 0] = 0 + i as u32 * 4;
-            self.buffers.1[6 * i + 1] = 1 + i as u32 * 4;
-            self.buffers.1[6 * i + 2] = 3 + i as u32 * 4;
-            self.buffers.1[6 * i + 3] = 0 + i as u32 * 4;
-            self.buffers.1[6 * i + 4] = 2 + i as u32 * 4;
-            self.buffers.1[6 * i + 5] = 3 + i as u32 * 4;
-        }
     }
 }
 
