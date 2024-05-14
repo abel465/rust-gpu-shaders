@@ -26,6 +26,8 @@
         "cargo"
         "clippy"
         "rustc"
+        "rustfmt"
+        "rust-analyzer"
       ];
       rustPlatform = pkgs.makeRustPlatform {
         cargo = rustPkg;

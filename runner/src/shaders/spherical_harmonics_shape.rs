@@ -1,6 +1,11 @@
 use crate::{camera::RotationCamera, controller::BufferData, model::Vertex, window::UserEvent};
 use bytemuck::Zeroable;
 use egui::{Color32, Context, Rect, RichText, Sense, Stroke, Ui};
+use egui_winit::winit::{
+    dpi::{PhysicalPosition, PhysicalSize},
+    event::{ElementState, MouseButton, MouseScrollDelta},
+    event_loop::EventLoopProxy,
+};
 use glam::{vec2, vec3, Vec2};
 use shared::{
     push_constants::spherical_harmonics_shape::{ShaderConstants, Variant},
@@ -8,14 +13,13 @@ use shared::{
 };
 use std::{
     f32::consts::{FRAC_1_SQRT_2, PI, TAU},
+    ops::Rem,
     time::Instant,
 };
 use strum::IntoEnumIterator;
-use egui_winit::winit::{
-    dpi::{PhysicalPosition, PhysicalSize},
-    event::{ElementState, MouseButton, MouseScrollDelta},
-    event_loop::EventLoopProxy,
-};
+
+const I_MAX: usize = 200;
+const J_MAX: usize = 200;
 
 pub struct Controller {
     size: PhysicalSize<u32>,
@@ -31,6 +35,7 @@ pub struct Controller {
     variant: Variant,
     negative_m: bool,
     include_time_factor: bool,
+    new_vertices: bool,
 }
 
 impl crate::controller::Controller for Controller {
@@ -46,13 +51,17 @@ impl crate::controller::Controller for Controller {
             prev_cursor: Vec2::ZERO,
             mouse_button_pressed: false,
             shader_constants: ShaderConstants::zeroed(),
-            buffers: create_buffers(m, l, variant),
+            buffers: (
+                vec![Vertex::zeroed(); I_MAX * J_MAX * 4],
+                vec![0; I_MAX * J_MAX * 6],
+            ),
             camera: RotationCamera::new(size.width as f32 / size.height as f32, 2.0),
             l,
             m,
             variant,
             negative_m: false,
             include_time_factor: false,
+            new_vertices: true,
         }
     }
 
@@ -123,16 +132,16 @@ impl crate::controller::Controller for Controller {
                 && self.variant != variant
             {
                 self.variant = variant;
-                self.buffers = create_buffers(self.m, self.l, self.variant);
-                signal_new_vertices(event_proxy);
+                self.new_vertices = true;
             }
         }
         if ui
             .checkbox(&mut self.include_time_factor, "Include time factor")
             .clicked()
-            && self.include_time_factor
+        // && self.include_time_factor
         {
             self.start = Instant::now();
+            self.new_vertices = true;
         }
 
         let (rect, response) = ui.allocate_at_least([220.0; 2].into(), Sense::drag());
@@ -160,8 +169,7 @@ impl crate::controller::Controller for Controller {
                 self.m = -self.m;
             }
             if prev_l != self.l || prev_m != self.m {
-                self.buffers = create_buffers(self.m, self.l, self.variant);
-                signal_new_vertices(event_proxy)
+                self.new_vertices = true
             }
         }
 
@@ -204,6 +212,11 @@ impl crate::controller::Controller for Controller {
             },
         );
         ui.advance_cursor_after_rect(rect);
+
+        if self.new_vertices || self.include_time_factor {
+            self.update_vertices(event_proxy);
+            self.new_vertices = false;
+        }
     }
 
     fn buffers(&self) -> BufferData<'_> {
@@ -216,52 +229,84 @@ impl crate::controller::Controller for Controller {
     }
 }
 
+impl Controller {
+    fn update_vertices(&mut self, event_proxy: &EventLoopProxy<UserEvent>) {
+        let m = self.m;
+        let l = self.l;
+        let time = if self.include_time_factor {
+            self.start.elapsed().as_secs_f32()
+        } else {
+            0.0
+        };
+        match self.variant {
+            Variant::Real => {
+                self.update_vertices_impl(|theta, phi| {
+                    let r = real_spherical_harmonic(m, l, theta, phi, time);
+                    let gb = -r * FRAC_1_SQRT_2;
+                    Vertex {
+                        position: from_spherical(r.abs(), theta, phi).into(),
+                        color: vec3(r, gb, gb).into(),
+                    }
+                });
+            }
+            Variant::Complex => {
+                self.update_vertices_impl(|theta, phi| {
+                    let z = spherical_harmonic(m, l, theta, phi, time);
+                    Vertex {
+                        position: from_spherical(z.norm(), theta, phi).into(),
+                        color: vec3(
+                            z.x,
+                            z.dot(vec2(-FRAC_1_SQRT_2, FRAC_1_SQRT_2)),
+                            z.dot(Vec2::splat(-FRAC_1_SQRT_2)),
+                        )
+                        .into(),
+                    }
+                });
+            }
+        }
+        signal_new_vertices(event_proxy);
+    }
+
+    fn update_vertices_impl<F>(&mut self, f: F)
+    where
+        F: Fn(f32, f32) -> Vertex + Send + Sync,
+    {
+        use rayon::prelude::*;
+
+        self.buffers
+            .0
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(index, vertex)| {
+                let index = index as u32;
+                let i = index / 4 / J_MAX as u32;
+                let j = index / 4 - i * J_MAX as u32;
+                let theta1 = PI * i as f32 / I_MAX as f32;
+                let theta2 = PI * (i + 1) as f32 / I_MAX as f32;
+                let phi1 = TAU * j as f32 / J_MAX as f32;
+                let phi2 = TAU * (j + 1) as f32 / J_MAX as f32;
+                let (theta, phi) = match index.rem(4) {
+                    0 => (theta1, phi1),
+                    1 => (theta1, phi2),
+                    2 => (theta2, phi1),
+                    _ => (theta2, phi2),
+                };
+                *vertex = f(theta, phi)
+            });
+
+        for i in 0..I_MAX * J_MAX {
+            self.buffers.1[6 * i + 0] = 0 + i as u32 * 4;
+            self.buffers.1[6 * i + 1] = 1 + i as u32 * 4;
+            self.buffers.1[6 * i + 2] = 3 + i as u32 * 4;
+            self.buffers.1[6 * i + 3] = 0 + i as u32 * 4;
+            self.buffers.1[6 * i + 4] = 2 + i as u32 * 4;
+            self.buffers.1[6 * i + 5] = 3 + i as u32 * 4;
+        }
+    }
+}
+
 fn signal_new_vertices(event_proxy: &EventLoopProxy<UserEvent>) {
     if event_proxy.send_event(UserEvent::NewBuffersReady).is_err() {
         panic!("Event loop dead");
     }
-}
-
-fn create_buffers(m: i32, l: u32, variant: Variant) -> (Vec<Vertex>, Vec<u32>) {
-    const I_MAX: u32 = 220;
-    const J_MAX: u32 = 220;
-    let vertices = (0..I_MAX)
-        .flat_map(|i| {
-            let theta1 = PI * i as f32 / I_MAX as f32;
-            let theta2 = PI * (i + 1) as f32 / I_MAX as f32;
-            (0..J_MAX).flat_map(move |j| {
-                let phi1 = TAU * j as f32 / J_MAX as f32;
-                let phi2 = TAU * (j + 1) as f32 / J_MAX as f32;
-
-                [theta1, theta2].into_iter().flat_map(move |theta| {
-                    [phi1, phi2].map(move |phi| match variant {
-                        Variant::Real => {
-                            let r = real_spherical_harmonic(m, l, theta, phi, 0.0);
-                            let gb = -r * FRAC_1_SQRT_2;
-                            Vertex {
-                                position: from_spherical(r.abs(), theta, phi).into(),
-                                color: vec3(r, gb, gb).into(),
-                            }
-                        }
-                        Variant::Complex => {
-                            let z = spherical_harmonic(m, l, theta, phi, 0.0);
-                            Vertex {
-                                position: from_spherical(z.norm(), theta, phi).into(),
-                                color: vec3(
-                                    z.dot(Vec2::X),
-                                    z.dot(vec2(-FRAC_1_SQRT_2, FRAC_1_SQRT_2)),
-                                    z.dot(Vec2::splat(-FRAC_1_SQRT_2)),
-                                )
-                                .into(),
-                            }
-                        }
-                    })
-                })
-            })
-        })
-        .collect();
-    let indices = (0..I_MAX * J_MAX)
-        .flat_map(|i| [0, 1, 3, 0, 2, 3].map(|x| x + i * 4))
-        .collect();
-    (vertices, indices)
 }

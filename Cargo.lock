@@ -2021,6 +2021,7 @@ dependencies = [
  "glam",
  "itertools 0.12.1",
  "rand",
+ "rayon",
  "shared",
  "spirv-builder",
  "structopt",
