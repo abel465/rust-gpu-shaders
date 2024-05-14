@@ -24,6 +24,7 @@ impl Default for LineSegment {
 }
 
 impl Sdf for LineSegment {
+    type T = f32;
     fn signed_distance(&self, p: Vec2) -> f32 {
         let b = self.b - self.a;
         p.distance(self.a + b * ((p - self.a).dot(b) / b.length_squared()).clamp(0.0, 1.0))

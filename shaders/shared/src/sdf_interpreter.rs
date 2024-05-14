@@ -1,5 +1,5 @@
 use crate::stack::Stack;
-use dfutils::primitives_enum::Shape;
+use dfutils::sdf::*;
 use spirv_std::glam::Vec2;
 
 #[cfg_attr(
@@ -15,54 +15,52 @@ pub enum Operator {
 }
 
 impl Operator {
-    fn operate(&self, a: f32, b: f32) -> f32 {
+    fn operate<T>(&self, a: T, b: T) -> T
+    where
+        T: Copy + SignedDistance,
+    {
         use Operator::*;
         match self {
-            Union => a.min(b),
-            Intersect => a.max(b),
-            Subtract => b.max(-a),
-            Xor => a.min(b).max(-a.max(b)),
+            Union => a.union(&b),
+            Intersect => a.intersect(&b),
+            Subtract => a.subtract(&b),
+            Xor => a.xor(&b),
         }
     }
 }
 
 #[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Default, PartialEq)]
 pub struct Transform {
     pub position: Vec2,
 }
 
-impl Default for Transform {
-    fn default() -> Self {
-        Self {
-            position: Vec2::ZERO,
-        }
-    }
+pub struct SdfInstructions<'a, U: SignedDistance, T: Copy + Sdf<T = U>> {
+    instructions: &'a [Instruction<T>],
 }
 
-pub struct SdfInstructions<'a> {
-    instructions: &'a [Instruction],
-}
-
-impl<'a> SdfInstructions<'a> {
-    pub fn new(instructions: &'a [Instruction]) -> Self {
+impl<'a, U: SignedDistance, T: Copy + Sdf<T = U>> SdfInstructions<'a, U, T> {
+    pub fn new(instructions: &'a [Instruction<T>]) -> Self {
         Self { instructions }
     }
 }
 
-#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
-#[derive(Clone, Copy)]
-pub enum Instruction {
+pub enum Instruction<T: Copy> {
     Operator(Operator),
-    Shape(Shape, Transform),
+    Sdf(T, Transform),
 }
 
-impl<'a> dfutils::sdf::Sdf for SdfInstructions<'a> {
-    fn signed_distance(&self, p: Vec2) -> f32 {
+impl<'a, U, T> Sdf for SdfInstructions<'a, U, T>
+where
+    U: SignedDistance,
+    T: Clone + Copy + Sdf<T = U>,
+{
+    type T = U;
+    fn signed_distance(&self, p: Vec2) -> U {
         if self.instructions.is_empty() {
-            return f32::INFINITY;
+            return U::divergent();
         }
-        let mut stack = Stack::<8, f32>::new();
+        let mut stack = Stack::<8, U>::new();
         for instruction in self.instructions {
             match instruction {
                 Instruction::Operator(op) => {
@@ -70,8 +68,8 @@ impl<'a> dfutils::sdf::Sdf for SdfInstructions<'a> {
                     let a = stack.pop();
                     stack.push(op.operate(a, b));
                 }
-                Instruction::Shape(shape, Transform { position }) => {
-                    stack.push(shape.signed_distance(p - *position));
+                Instruction::Sdf(sdf, Transform { position }) => {
+                    stack.push(sdf.signed_distance(p - *position));
                 }
             }
         }

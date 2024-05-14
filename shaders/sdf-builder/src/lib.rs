@@ -2,13 +2,16 @@
 
 use dfutils::gridref::*;
 use push_constants::sdf_builder::ShaderConstants;
+use sdf_wrapper::WrappedDistance;
 use shared::*;
 use spirv_std::glam::*;
 #[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
 use spirv_std::num_traits::Float;
 use spirv_std::spirv;
 
-fn sdf(p: Vec2, grid: GridRef) -> f32 {
+type T = WrappedDistance<u32>;
+
+fn sdf(p: Vec2, grid: GridRef<T>) -> T {
     grid.signed_distance(p)
 }
 
@@ -16,7 +19,7 @@ fn sdf(p: Vec2, grid: GridRef) -> f32 {
 pub fn main_fs(
     #[spirv(frag_coord)] frag_coord: Vec4,
     #[spirv(push_constant)] constants: &ShaderConstants,
-    #[spirv(storage_buffer, descriptor_set = 0, binding = 0)] grid_buffer: &[f32],
+    #[spirv(storage_buffer, descriptor_set = 0, binding = 0)] grid_buffer: &[T],
     output: &mut Vec4,
 ) {
     let uv = from_pixels(frag_coord.xy(), constants.size);
@@ -26,7 +29,7 @@ pub fn main_fs(
         constants.size.height as usize,
         grid_buffer,
     );
-    let d = sdf(uv, grid);
+    let T { d, data: id } = sdf(uv, grid);
     let mut col = if d < 0.0 {
         vec3(0.65, 0.85, 1.0)
     } else {
@@ -34,8 +37,13 @@ pub fn main_fs(
     };
     col *= 1.0 - (-6.0 * d.abs()).exp();
     col *= 0.8 + 0.2 * (150.0 * d).cos();
+    if id == constants.selected_id {
+        col = col.lerp(Vec3::ONE, 1.0 - smoothstep(0.0, 0.01, d.abs()));
+    } else {
+        col = col.lerp(Vec3::splat(0.5), 1.0 - smoothstep(0.0, 0.01, d.abs()));
+    }
 
-    *output = col.extend(1.0);
+    *output = col.powf(2.2).extend(1.0);
 }
 
 #[spirv(vertex)]

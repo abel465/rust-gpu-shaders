@@ -4,32 +4,35 @@ use crate::{
 };
 use glam::{vec2, Vec2};
 
-pub struct Grid {
+pub struct Grid<T> {
     pub w: usize,
     pub h: usize,
-    pub buffer: Vec<f32>,
+    pub buffer: Vec<T>,
 }
 
-impl Grid {
+impl<#[cfg(feature = "rayon")] T: Send, #[cfg(not(feature = "rayon"))] T> Grid<T>
+where
+    T: Default + Clone + Copy,
+{
     pub fn new(w: usize, h: usize) -> Self {
         Self {
             w,
             h,
-            buffer: vec![0.0; w * h],
+            buffer: vec![Default::default(); w * h],
         }
     }
 
-    pub fn as_ref(&self) -> GridRef<'_> {
+    pub fn as_ref(&self) -> GridRef<'_, T> {
         GridRef::new(self.w, self.h, &self.buffer)
     }
 
-    pub fn as_ref_mut(&mut self) -> GridRefMut<'_> {
+    pub fn as_ref_mut(&mut self) -> GridRefMut<'_, T> {
         GridRefMut::new(self.w, self.h, &mut self.buffer)
     }
 
     pub fn from_sdf<
-        #[cfg(feature = "rayon")] S: Sdf + Sync,
-        #[cfg(not(feature = "rayon"))] S: Sdf,
+        #[cfg(feature = "rayon")] S: Sdf<T = T> + Sync,
+        #[cfg(not(feature = "rayon"))] S: Sdf<T = T>,
     >(
         rows: usize,
         cols: usize,
@@ -41,8 +44,8 @@ impl Grid {
     }
 
     pub fn update<
-        #[cfg(feature = "rayon")] S: Sdf + Sync,
-        #[cfg(not(feature = "rayon"))] S: Sdf,
+        #[cfg(feature = "rayon")] S: Sdf<T = T> + Sync,
+        #[cfg(not(feature = "rayon"))] S: Sdf<T = T>,
     >(
         &mut self,
         sdf: &S,
@@ -74,7 +77,7 @@ impl Grid {
         self.h = h;
         let new_size = w * h;
         if new_size > self.buffer.len() {
-            self.buffer.resize(new_size, 0.0);
+            self.buffer.resize(new_size, Default::default());
         }
     }
 
@@ -82,17 +85,15 @@ impl Grid {
         self.w as f32 / self.h as f32
     }
 
-    pub fn get(&self, x: usize, y: usize) -> f32 {
+    pub fn get(&self, x: usize, y: usize) -> T {
         self.buffer[y * self.w + x]
     }
 
-    pub fn set(&mut self, x: usize, y: usize, value: f32) {
+    pub fn set(&mut self, x: usize, y: usize, value: T) {
         self.buffer[y * self.w + x] = value;
     }
-}
 
-impl Sdf for Grid {
-    fn signed_distance(&self, p: Vec2) -> f32 {
+    pub fn signed_distance(&self, p: Vec2) -> T {
         self.as_ref().signed_distance(p)
     }
 }

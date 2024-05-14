@@ -20,6 +20,7 @@ impl Default for Plane {
 }
 
 impl Sdf for Plane {
+    type T = f32;
     fn signed_distance(&self, p: Vec2) -> f32 {
         self.normal.dot(p)
     }

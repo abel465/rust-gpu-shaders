@@ -20,6 +20,7 @@ impl Default for Ray {
 }
 
 impl Sdf for Ray {
+    type T = f32;
     fn signed_distance(&self, p: Vec2) -> f32 {
         p.distance(self.direction * p.dot(self.direction).max(0.0))
     }

@@ -12,18 +12,17 @@ use egui_winit::winit::{
 };
 use glam::*;
 use icons::TextureHandles;
-use instructions::{id_of_signed_distance, InstructionForId};
 use resize::Resize;
 use sdf_builder_tree::{Command, Item, ItemId, SdfBuilderTree, SelectedItem};
 use shared::{
     from_pixels,
     push_constants::sdf_builder::ShaderConstants,
-    sdf_interpreter::{SdfInstructions, Transform},
+    sdf_interpreter::{Instruction, SdfInstructions, Transform},
+    sdf_wrapper::{SdfWrapper, WrappedDistance},
 };
 use std::time::{Duration, Instant};
 
 mod icons;
-mod instructions;
 mod resize;
 mod sdf_builder_tree;
 pub mod shape_ui;
@@ -60,7 +59,7 @@ pub struct Controller {
     size: PhysicalSize<u32>,
     start: Instant,
     shader_constants: ShaderConstants,
-    grid: Grid,
+    grid: Grid<WrappedDistance<ItemId>>,
     sdf_builder_tree: SdfBuilderTree,
     cursor: Vec2,
     mouse_button_pressed: bool,
@@ -68,7 +67,7 @@ pub struct Controller {
     grabbing: Option<Grabbing>,
     original_selected_item: Option<Item>,
     texture_handles: TextureHandles,
-    instructions_for_id: Vec<InstructionForId>,
+    instructions: Vec<Instruction<SdfWrapper<Shape, ItemId>>>,
     last_mouse_press: (Vec2, std::time::Instant),
 }
 
@@ -87,7 +86,7 @@ impl crate::controller::Controller for Controller {
             grabbing: None,
             original_selected_item: None,
             texture_handles: TextureHandles::empty(),
-            instructions_for_id: vec![],
+            instructions: vec![],
             last_mouse_press: (Vec2::ZERO, now),
         }
     }
@@ -164,13 +163,8 @@ impl crate::controller::Controller for Controller {
                     if press_position.distance_squared(self.cursor) < 4.0
                         && instant.elapsed() < Duration::from_millis(300)
                     {
-                        self.sdf_builder_tree.send_command(Command::SetSelectedItem(
-                            if let Some(item_id) = self.get_item_id_under_cursor() {
-                                item_id.into()
-                            } else {
-                                SelectedItem::NONE
-                            },
-                        ));
+                        self.sdf_builder_tree
+                            .send_command(Command::SetSelectedItem(self.get_item_for_selection()));
                     }
                     false
                 }
@@ -184,6 +178,12 @@ impl crate::controller::Controller for Controller {
             time: self.start.elapsed().as_secs_f32(),
             mouse_button_pressed: (self.mouse_button_pressed && self.grabbing.is_none()).into(),
             cursor: self.cursor_from_pixels().into(),
+            selected_id: self
+                .sdf_builder_tree
+                .selected_item
+                .id
+                .map(|id| id.0)
+                .unwrap_or(0),
         }
     }
 
@@ -219,9 +219,8 @@ impl crate::controller::Controller for Controller {
         self.sdf_builder_tree
             .ui(ui, &self.texture_handles, self.size);
         if self.sdf_builder_tree.grid_needs_updating {
-            let (instructions, instructions_for_id) = self.sdf_builder_tree.generate_instructions();
-            self.instructions_for_id = instructions_for_id;
-            self.grid.update(&SdfInstructions::new(&instructions));
+            self.instructions = self.sdf_builder_tree.generate_instructions();
+            self.grid.update(&SdfInstructions::new(&self.instructions));
             if event_proxy.send_event(UserEvent::NewBuffersReady).is_err() {
                 panic!("Event loop dead");
             }
@@ -345,7 +344,12 @@ impl Controller {
         }
     }
 
-    fn get_item_id_under_cursor(&self) -> Option<ItemId> {
-        id_of_signed_distance(&self.instructions_for_id, self.cursor_from_pixels())
+    fn get_item_for_selection(&self) -> SelectedItem {
+        let wrapped_distance = self.grid.signed_distance(self.cursor_from_pixels());
+        if wrapped_distance.d == f32::INFINITY {
+            SelectedItem::NONE
+        } else {
+            wrapped_distance.data.into()
+        }
     }
 }

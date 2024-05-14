@@ -24,6 +24,7 @@ impl Default for Rectangle {
 }
 
 impl Sdf for Rectangle {
+    type T = f32;
     fn signed_distance(&self, p: Vec2) -> f32 {
         let p = p.abs() - vec2(self.width, self.height) * 0.5;
         p.max(Vec2::ZERO).length() + p.min(Vec2::ZERO).max_element()

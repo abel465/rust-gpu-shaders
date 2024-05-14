@@ -28,6 +28,7 @@ impl Default for Torus {
 }
 
 impl Sdf for Torus {
+    type T = f32;
     fn signed_distance(&self, p: Vec2) -> f32 {
         Disk::new(self.major_radius).distance(p) - self.minor_radius
     }

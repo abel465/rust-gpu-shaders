@@ -13,6 +13,7 @@ pub mod ray_intersection;
 pub mod sdf_2d;
 pub mod sdf_3d;
 pub mod sdf_interpreter;
+pub mod sdf_wrapper;
 pub mod spherical_harmonics;
 pub mod stack;
 pub mod voronoi;

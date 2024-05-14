@@ -1,17 +1,16 @@
-pub use crate::sdf::Sdf;
 use glam::Vec2;
 #[cfg(not(feature = "std"))]
 use num_traits::Float;
 
 #[derive(Clone, Copy)]
-pub struct GridRef<'a> {
+pub struct GridRef<'a, T> {
     w: usize,
     h: usize,
-    buffer: &'a [f32],
+    buffer: &'a [T],
 }
 
-impl<'a> GridRef<'a> {
-    pub fn new(w: usize, h: usize, buffer: &'a [f32]) -> Self {
+impl<'a, T: Copy> GridRef<'a, T> {
+    pub fn new(w: usize, h: usize, buffer: &'a [T]) -> Self {
         Self { w, h, buffer }
     }
 
@@ -19,13 +18,11 @@ impl<'a> GridRef<'a> {
         self.w as f32 / self.h as f32
     }
 
-    pub fn get(&self, x: usize, y: usize) -> f32 {
+    pub fn get(&self, x: usize, y: usize) -> T {
         self.buffer[y * self.w + x]
     }
-}
 
-impl<'a> Sdf for GridRef<'a> {
-    fn signed_distance(&self, p: Vec2) -> f32 {
+    pub fn signed_distance(&self, p: Vec2) -> T {
         let ar = self.aspect_ratio();
         debug_assert!(p.x.abs() < 0.5 * ar && p.y.abs() < 0.5);
         let x = ((p.x + 0.5 * ar) / ar * self.w as f32) as usize;
@@ -34,18 +31,18 @@ impl<'a> Sdf for GridRef<'a> {
     }
 }
 
-pub struct GridRefMut<'a> {
+pub struct GridRefMut<'a, T> {
     w: usize,
     h: usize,
-    buffer: &'a mut [f32],
+    buffer: &'a mut [T],
 }
 
-impl<'a> GridRefMut<'a> {
-    pub fn new(w: usize, h: usize, buffer: &'a mut [f32]) -> Self {
+impl<'a, T: Copy> GridRefMut<'a, T> {
+    pub fn new(w: usize, h: usize, buffer: &'a mut [T]) -> Self {
         Self { w, h, buffer }
     }
 
-    pub fn as_ref(&self) -> GridRef<'_> {
+    pub fn as_ref(&self) -> GridRef<'_, T> {
         GridRef::new(self.w, self.h, self.buffer)
     }
 
@@ -53,17 +50,15 @@ impl<'a> GridRefMut<'a> {
         self.w as f32 / self.h as f32
     }
 
-    pub fn get(&self, x: usize, y: usize) -> f32 {
+    pub fn get(&self, x: usize, y: usize) -> T {
         self.buffer[y * self.w + x]
     }
 
-    pub fn set(&mut self, x: usize, y: usize, value: f32) {
+    pub fn set(&mut self, x: usize, y: usize, value: T) {
         self.buffer[y * self.w + x] = value;
     }
-}
 
-impl<'a> Sdf for GridRefMut<'a> {
-    fn signed_distance(&self, p: Vec2) -> f32 {
+    pub fn signed_distance(&self, p: Vec2) -> T {
         self.as_ref().signed_distance(p)
     }
 }

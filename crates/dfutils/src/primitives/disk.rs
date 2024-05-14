@@ -20,6 +20,7 @@ impl Default for Disk {
 }
 
 impl Sdf for Disk {
+    type T = f32;
     fn signed_distance(&self, p: Vec2) -> f32 {
         p.length() - self.radius
     }

@@ -26,6 +26,7 @@ impl Default for Cross {
 }
 
 impl Sdf for Cross {
+    type T = f32;
     fn signed_distance(&self, mut p: Vec2) -> f32 {
         p = p.abs();
         if p.y > p.x {

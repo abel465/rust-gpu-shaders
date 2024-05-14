@@ -1,4 +1,3 @@
-use super::instructions::InstructionForId;
 use super::{icons::TextureHandles, shape_ui::ShapeUi};
 use dfutils::primitives_enum::Shape;
 use egui::{load::SizedTexture, NumExt as _, TextureHandle};
@@ -8,12 +7,14 @@ use itertools::izip;
 use shared::{
     from_pixels,
     sdf_interpreter::{Instruction, Operator, Transform},
+    sdf_wrapper::SdfWrapper,
 };
 use std::collections::HashMap;
 use strum::IntoEnumIterator;
 
-#[derive(Hash, Clone, Copy, PartialEq, Eq, Default)]
-pub struct ItemId(u32);
+#[repr(C)]
+#[derive(bytemuck::Pod, bytemuck::Zeroable, Hash, Clone, Copy, PartialEq, Eq, Default)]
+pub struct ItemId(pub u32);
 
 impl ItemId {
     fn new() -> Self {
@@ -71,6 +72,7 @@ impl SelectedItem {
         id: None,
         new_item: None,
     };
+
     const fn new(id: ItemId, item: Item) -> Self {
         SelectedItem {
             id: Some(id),
@@ -785,29 +787,26 @@ impl SdfBuilderTree {
 // Instruction generation
 //
 impl SdfBuilderTree {
-    pub fn generate_instructions(&self) -> (Vec<Instruction>, Vec<InstructionForId>) {
+    pub fn generate_instructions(&self) -> Vec<Instruction<SdfWrapper<Shape, ItemId>>> {
         let capacity = self.items.len() + self.extra_item.is_some() as usize;
-        let mut instructions_for_id = Vec::with_capacity(capacity);
-        self.generate_instructions_for_id(&self.root_id, &mut instructions_for_id);
-        let mut instructions: Vec<_> = instructions_for_id
-            .iter()
-            .map(|instruction_for_id| (*instruction_for_id).into())
-            .collect();
-        if let Some((shape, transform)) = self.extra_item {
+        let mut instructions = Vec::with_capacity(capacity);
+        self.generate_instructions_for_id(&self.root_id, &mut instructions);
+        if let (Some((shape, transform)), Some(id)) = (self.extra_item, self.selected_item.id) {
+            let instruction = Instruction::Sdf(SdfWrapper::new(shape, id), transform);
             if instructions.is_empty() {
-                instructions.push(Instruction::Shape(shape, transform));
+                instructions.push(instruction);
             } else {
-                instructions.insert(0, Instruction::Shape(shape, transform));
+                instructions.insert(0, instruction);
                 instructions.push(Instruction::Operator(self.operator_mode));
             }
         }
-        (instructions, instructions_for_id)
+        instructions
     }
 
     fn generate_instructions_for_id(
         &self,
         id: &ItemId,
-        instructions: &mut Vec<InstructionForId>,
+        instructions: &mut Vec<Instruction<SdfWrapper<Shape, ItemId>>>,
     ) -> bool {
         if let Some(item) = self.items.get(id) {
             match item {
@@ -834,21 +833,21 @@ impl SdfBuilderTree {
                     } else {
                         *op
                     };
-                    instructions.push(InstructionForId::Operator(op_to_add, *id));
+                    instructions.push(Instruction::Operator(op_to_add));
                     for next_id in items {
                         if self.generate_instructions_for_id(next_id, instructions) {
-                            instructions.push(InstructionForId::Operator(op_to_add, *id));
+                            instructions.push(Instruction::Operator(op_to_add));
                         }
                     }
                     if *op == Operator::Subtract {
-                        if let Some(InstructionForId::Operator(op, _)) = instructions.last_mut() {
+                        if let Some(Instruction::Operator(op)) = instructions.last_mut() {
                             *op = Operator::Subtract;
                         }
                     }
                     true
                 }
                 Item::Shape(shape, transform) => {
-                    instructions.push(InstructionForId::Shape(*shape, *id, *transform));
+                    instructions.push(Instruction::Sdf(SdfWrapper::new(*shape, *id), *transform));
                     true
                 }
             }

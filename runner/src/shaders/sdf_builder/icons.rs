@@ -57,16 +57,16 @@ pub fn generate_icons() -> IconImages {
     }
 }
 
-fn get_instructions(op: Operator) -> [Instruction; 3] {
     let disk = Shape::Disk(Disk::new(0.25));
+fn get_instructions(op: Operator) -> [Instruction<Shape>; 3] {
     [
-        Instruction::Shape(
+        Instruction::Sdf(
             disk,
             Transform {
                 position: vec2(0.1, 0.0),
             },
         ),
-        Instruction::Shape(
+        Instruction::Sdf(
             disk,
             Transform {
                 position: vec2(-0.1, 0.0),

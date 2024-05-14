@@ -1,27 +1,32 @@
+use core::mem::MaybeUninit;
+
 pub struct Stack<const N: usize, T> {
-    pub buf: [T; N],
+    pub buf: [MaybeUninit<T>; N],
     pub sp: usize,
 }
 
 impl<const N: usize, T> Stack<N, T>
 where
-    T: Default + Copy,
+    T: Copy,
 {
     pub fn new() -> Self {
         Self {
-            buf: [T::default(); N],
+            buf: unsafe { MaybeUninit::uninit().assume_init() },
             sp: 0,
         }
     }
+
     pub fn push(&mut self, x: T) {
-        self.buf[self.sp] = x;
+        self.buf[self.sp] = MaybeUninit::new(x);
         self.sp += 1;
     }
+
     pub fn pop(&mut self) -> T {
         self.sp -= 1;
-        self.buf[self.sp]
+        unsafe { self.buf[self.sp].assume_init() }
     }
+
     pub fn peek(&self) -> T {
-        self.buf[self.sp - 1]
+        unsafe { self.buf[self.sp - 1].assume_init() }
     }
 }
