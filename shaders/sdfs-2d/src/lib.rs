@@ -35,8 +35,8 @@ pub fn main_fs(
     } else {
         vec3(0.9, 0.6, 0.3)
     };
-    col *= 1.0 - (-6.0 * d.abs()).exp();
-    col *= 0.8 + 0.2 * (150.0 * d).cos();
+    col *= 1.0 - (-50.0 * d.abs()).exp();
+    col *= 0.8 + 0.2 * (300.0 * d).cos();
 
     if constants.mouse_button_pressed & 1 != 0 {
         let d = sdf(cursor, grid, smooth);
@@ -64,7 +64,7 @@ pub fn main_fs(
         col = col.lerp(Vec3::ONE, smoothstep(0.008, 0.0, sdf::disk(uv - p, 0.002)))
     }
 
-    *output = col.extend(1.0);
+    *output = col.powf(2.2).extend(1.0);
 }
 
 #[spirv(vertex)]

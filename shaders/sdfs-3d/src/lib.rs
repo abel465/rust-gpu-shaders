@@ -86,7 +86,7 @@ fn ray_march(ro: Vec3, rd: Vec3, shape: Shape, slice_z: f32, params: Params) -> 
 fn get_d_to_shape_at_slice(ro: Vec3, rd: Vec3, shape: Shape, slice_z: f32, params: Params) -> f32 {
     let x = (slice_z - ro.z) / rd.z;
     if x < 0.0 {
-        MAX_DIST * 8.0 // Makes a nice color
+        MAX_DIST
     } else {
         sdf_shape(ro + rd * x, shape, params)
     }
@@ -162,7 +162,10 @@ pub fn main_fs(
             )
     };
 
-    if !(d_to_cursor < cursor_d.abs() || (d0 < MAX_DIST && ro.z > slice_z && slice_d > 0.0)) {
+    if !(d_to_cursor < cursor_d.abs()
+        || (d0 < MAX_DIST && ro.z > slice_z && slice_d > 0.0)
+        || slice_d >= MAX_DIST)
+    {
         let base = if slice_d < 0.0 && hemisphere_d <= 0.0 {
             COL_INSIDE
         } else {
@@ -173,13 +176,7 @@ pub fn main_fs(
         } else {
             1.0
         };
-        let phase = if slice_d.abs() < 1.0 {
-            0.0
-        } else if slice_d > 0.0 {
-            PI / 2.0
-        } else {
-            PI
-        };
+        let phase = if slice_d.abs() < 1.0 { 0.0 } else { PI };
         let angle = if slice_d.abs() < 1.0 {
             slice_d
         } else {
@@ -187,8 +184,8 @@ pub fn main_fs(
         };
         col = col
             .lerp(
-                (base * (1.0 - (-6.0 * slice_d.abs()).exp()))
-                    * (0.8 + 0.2 * (150.0 * angle + phase).cos()),
+                (base * (1.0 - (-40.0 * slice_d.abs()).exp()))
+                    * (0.8 + 0.2 * (300.0 * angle + phase).cos()),
                 s,
             )
             .lerp(Vec3::ONE, 1.0 - smoothstep(0.0, 0.005, slice_d.abs()))
@@ -228,7 +225,7 @@ pub fn main_fs(
         }
     }
 
-    *output = col.extend(1.0);
+    *output = col.powf(2.2).extend(1.0);
 }
 
 #[spirv(vertex)]

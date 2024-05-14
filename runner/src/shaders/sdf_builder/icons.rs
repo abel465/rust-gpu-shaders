@@ -57,8 +57,8 @@ pub fn generate_icons() -> IconImages {
     }
 }
 
-    let disk = Shape::Disk(Disk::new(0.25));
 fn get_instructions(op: Operator) -> [Instruction<Shape>; 3] {
+    let disk = Shape::Disk(Disk::new(0.25));
     [
         Instruction::Sdf(
             disk,

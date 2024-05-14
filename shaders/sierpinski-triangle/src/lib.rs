@@ -4,8 +4,6 @@ use push_constants::sierpinski_triangle::ShaderConstants;
 use sdf_2d::fractal::sierpinski_triangle;
 use shared::*;
 use spirv_std::glam::{vec3, Vec2, Vec4, Vec4Swizzles};
-#[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
-use spirv_std::num_traits::Float;
 use spirv_std::spirv;
 
 #[spirv(fragment)]

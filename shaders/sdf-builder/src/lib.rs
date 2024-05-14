@@ -35,12 +35,12 @@ pub fn main_fs(
     } else {
         vec3(0.9, 0.6, 0.3)
     };
-    col *= 1.0 - (-6.0 * d.abs()).exp();
-    col *= 0.8 + 0.2 * (150.0 * d).cos();
+    col *= 1.0 - (-20.0 * d.abs()).exp();
+    col *= 0.8 + 0.2 * (300.0 * d).cos();
     if id == constants.selected_id {
-        col = col.lerp(Vec3::ONE, 1.0 - smoothstep(0.0, 0.01, d.abs()));
+        col = col.lerp(Vec3::ONE, 1.0 - smoothstep(0.0, 0.008, d.abs()));
     } else {
-        col = col.lerp(Vec3::splat(0.5), 1.0 - smoothstep(0.0, 0.01, d.abs()));
+        col = col.lerp(Vec3::splat(0.5), 1.0 - smoothstep(0.0, 0.008, d.abs()));
     }
 
     *output = col.powf(2.2).extend(1.0);
