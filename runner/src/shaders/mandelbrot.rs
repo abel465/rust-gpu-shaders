@@ -1,16 +1,18 @@
 use crate::window::UserEvent;
 use bytemuck::Zeroable;
 use egui::Context;
-use glam::{vec2, Vec2};
-use shared::push_constants::mandelbrot::ShaderConstants;
 use egui_winit::winit::{
-    dpi::PhysicalSize,
+    dpi::{PhysicalPosition, PhysicalSize},
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,
 };
+use glam::{vec2, Vec2};
+use shared::push_constants::mandelbrot::ShaderConstants;
 
 pub struct Controller {
     size: PhysicalSize<u32>,
+    cursor: Vec2,
+    prev_cursor: Vec2,
     camera: Vec2,
     zoom: f32,
     mouse_button_pressed: bool,
@@ -23,6 +25,8 @@ impl crate::controller::Controller for Controller {
     fn new(size: PhysicalSize<u32>) -> Self {
         Self {
             size,
+            cursor: Vec2::ZERO,
+            prev_cursor: Vec2::ZERO,
             camera: Vec2::ZERO,
             zoom: 1.0,
             mouse_button_pressed: false,
@@ -41,10 +45,12 @@ impl crate::controller::Controller for Controller {
         }
     }
 
-    fn mouse_delta(&mut self, delta: (f64, f64)) {
+    fn mouse_move(&mut self, position: PhysicalPosition<f64>) {
+        self.cursor = vec2(position.x as f32, position.y as f32);
         if self.mouse_button_pressed {
-            self.camera -= vec2(delta.0 as f32, delta.1 as f32)
+            self.camera -= self.cursor - self.prev_cursor
         }
+        self.prev_cursor = self.cursor;
     }
 
     fn mouse_scroll(&mut self, delta: MouseScrollDelta) {
