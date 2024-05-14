@@ -240,10 +240,15 @@ impl Controller {
         } else {
             0.0
         };
+        let normalization_constant = (((2 * l + 1) as f32 * factorialu(l - m as u32))
+            / (4.0 * PI * factorialu(l + m as u32)))
+        .sqrt();
+        let time_factor = shared::complex::Complex::from_angle(time);
+        let precomputed = normalization_constant * time_factor;
         match self.variant {
             Variant::Real => {
                 self.update_vertices_impl(|theta, phi| {
-                    let r = real_spherical_harmonic(m, l, theta, phi, time);
+                    let r = real_spherical_harmonic2(m, l, theta, phi, precomputed);
                     let gb = -r * FRAC_1_SQRT_2;
                     Vertex {
                         position: from_spherical(r.abs(), theta, phi).into(),
@@ -253,7 +258,7 @@ impl Controller {
             }
             Variant::Complex => {
                 self.update_vertices_impl(|theta, phi| {
-                    let z = spherical_harmonic(m, l, theta, phi, time);
+                    let z = spherical_harmonic2(m, l, theta, phi, precomputed);
                     Vertex {
                         position: from_spherical(z.norm(), theta, phi).into(),
                         color: vec3(

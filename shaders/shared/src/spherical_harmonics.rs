@@ -80,3 +80,22 @@ pub fn real_spherical_harmonic(m: i32, l: u32, theta: f32, phi: f32, time: f32) 
         2.0_f32.sqrt() * sh.y
     }
 }
+
+/// like `spherical_harmonic` but accepts a precomputed normalization constant
+pub fn spherical_harmonic2(m: i32, l: u32, theta: f32, phi: f32, nc: Complex) -> Complex {
+    let angular = Complex::from_angle(phi * m as f32);
+    let lp = legendre_polynomial(m, l, theta.cos());
+    nc * lp * angular
+}
+
+/// like `real_spherical_harmonic` but accepts a precomputed normalization constant
+pub fn real_spherical_harmonic2(m: i32, l: u32, theta: f32, phi: f32, nc: Complex) -> f32 {
+    let sh = spherical_harmonic2(m.abs(), l, theta, phi, nc);
+    if m == 0 {
+        sh.x
+    } else if m > 0 {
+        2.0_f32.sqrt() * sh.x
+    } else {
+        2.0_f32.sqrt() * sh.y
+    }
+}
