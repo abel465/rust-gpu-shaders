@@ -12,33 +12,41 @@ pub fn factorialu(n: u32) -> f32 {
     x
 }
 
-fn binomial(n: u32, k: u32) -> f32 {
-    let mut x = 1.0;
-    for i in 1..=k {
-        x *= (n + 1 - i) as f32 / i as f32;
-    }
-    x
-}
-
 fn general_binomial(n: f32, k: u32) -> f32 {
     let mut x = 1.0;
     for i in 0..k {
-        x *= n - i as f32;
+        x *= (n - i as f32) / (i + 1) as f32;
     }
-    x / factorialu(k)
+    x
 }
 
 fn legendre_polynomial(m: i32, l: u32, x: f32) -> Complex {
     fn legendre_polynomial_positive(m: u32, l: u32, x: f32) -> Complex {
         let mut sm = 0.0;
+        let mut denominator = 1.0;
+        let mut numerator = {
+            let mut x = 1.0;
+            for i in 1..=m {
+                x *= (l + 1 - i) as f32;
+            }
+            x
+        };
         for k in m..=l {
-            sm += factorialu(k) / factorialu(k - m)
-                * x.powi((k - m) as i32)
-                * binomial(l, k)
-                * general_binomial(((l + k) as f32 - 1.0) / 2.0, l);
+            sm += numerator / denominator * general_binomial(((l + k) as f32 - 1.0) / 2.0, l);
+            numerator *= x * (k + 1) as f32 * (l - k) as f32;
+            denominator *= (k - m + 1) as f32 * (k + 1) as f32;
         }
-        let bb = Complex::new(1.0 - x * x, 0.0).powf(m as f32 / 2.0);
-        (-1.0_f32).powi(m as i32) * 2.0_f32.powi(l as i32) * bb * sm
+        let z = if m == 0 {
+            Complex::ONE
+        } else {
+            let exp = m as f32 / 2.0;
+            let x = 1.0 - x * x;
+            let r = x.abs().powf(exp);
+            let theta = exp * 0.0_f32.atan2(x);
+            r * Complex::from_angle(theta)
+        };
+
+        (-1.0_f32).powi(m as i32) * 2.0_f32.powi(l as i32) * z * sm
     }
     if m < 0 {
         (-1.0_f32).powi(-m) * factorialu((l as i32 + m) as u32) / factorialu((l as i32 - m) as u32)
