@@ -41,7 +41,7 @@ fn legendre_polynomial(m: i32, l: u32, x: f32) -> Complex {
         (-1.0_f32).powi(m as i32) * 2.0_f32.powi(l as i32) * bb * sm
     }
     if m < 0 {
-        (-1.0_f32).powi(-m) * factorialu(l + m as u32) / factorialu(l - m as u32)
+        (-1.0_f32).powi(-m) * factorialu((l as i32 + m) as u32) / factorialu((l as i32 - m) as u32)
             * legendre_polynomial_positive((-m) as u32, l, x)
     } else {
         legendre_polynomial_positive(m as u32, l, x)
@@ -62,8 +62,8 @@ pub fn to_spherical(pos: Vec3) -> (f32, f32, f32) {
 }
 
 pub fn spherical_harmonic(m: i32, l: u32, theta: f32, phi: f32, time: f32) -> Complex {
-    let normalization_constant = (((2 * l + 1) as f32 * factorialu(l - m as u32))
-        / (4.0 * PI * factorialu(l + m as u32)))
+    let normalization_constant = (((2 * l + 1) as f32 * factorialu((l as i32 - m) as u32))
+        / (4.0 * PI * factorialu((l as i32 + m) as u32)))
     .sqrt();
     let angular = Complex::from_angle(phi * m as f32);
     let lp = legendre_polynomial(m, l, theta.cos());
@@ -79,6 +79,12 @@ pub fn real_spherical_harmonic(m: i32, l: u32, theta: f32, phi: f32, time: f32) 
     } else {
         2.0_f32.sqrt() * sh.y
     }
+}
+
+pub fn normalization_constant(m: i32, l: u32) -> f32 {
+    (((2 * l + 1) as f32 * factorialu((l as i32 - m) as u32))
+        / (4.0 * PI * factorialu((l as i32 + m) as u32)))
+    .sqrt()
 }
 
 /// like `spherical_harmonic` but accepts a precomputed normalization constant
