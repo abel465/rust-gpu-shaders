@@ -255,7 +255,7 @@ impl Controller {
             }
             Variant::Complex => {
                 self.update_vertices_impl(|theta, phi| {
-                    let z = spherical_harmonic2(m, l, theta, phi, precomputed);
+                    let z = precomputed * spherical_harmonic2(m, l, theta, phi);
                     Vertex {
                         position: from_spherical(z.norm(), theta, phi).into(),
                         color: vec3(

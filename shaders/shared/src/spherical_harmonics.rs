@@ -87,16 +87,16 @@ pub fn normalization_constant(m: i32, l: u32) -> f32 {
     .sqrt()
 }
 
-/// like `spherical_harmonic` but accepts a precomputed normalization constant
-pub fn spherical_harmonic2(m: i32, l: u32, theta: f32, phi: f32, nc: Complex) -> Complex {
+/// like `spherical_harmonic` but unnormalized
+pub fn spherical_harmonic2(m: i32, l: u32, theta: f32, phi: f32) -> Complex {
     let angular = Complex::from_angle(phi * m as f32);
     let lp = legendre_polynomial(m, l, theta.cos());
-    nc * lp * angular
+    lp * angular
 }
 
 /// like `real_spherical_harmonic` but accepts a precomputed normalization constant
 pub fn real_spherical_harmonic2(m: i32, l: u32, theta: f32, phi: f32, nc: Complex) -> f32 {
-    let sh = spherical_harmonic2(m.abs(), l, theta, phi, nc);
+    let sh = nc * spherical_harmonic2(m.abs(), l, theta, phi);
     if m == 0 {
         sh.x
     } else if m > 0 {

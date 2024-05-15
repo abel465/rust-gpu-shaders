@@ -10,21 +10,22 @@ use spirv_std::glam::{vec2, vec3, Mat3, Vec2, Vec3, Vec4, Vec4Swizzles};
 use spirv_std::num_traits::Float;
 use spirv_std::spirv;
 
-// const A: f32 = 1.00054 * 5.29177210903e-11; // Bohr radius
 // All units of distance are multiples of the Bohr radius
-const A: f32 = 1.0; // Bohr radius
 
 fn laguerre_polynomial(r: u32, s: u32, x: f32) -> f32 {
     let mut sum = 0.0;
+    let mut numerator = factorialu(s + r).powi(2);
+    let mut denominator = factorialu(s) * factorialu(r);
     for q in 0..=s {
-        sum += (-1.0_f32).powi(q as i32) * factorialu(s + r) * factorialu(s + r) * x.powi(q as i32)
-            / (factorialu(s - q) * factorialu(r + q) * factorialu(q));
+        sum += numerator / denominator;
+        numerator *= -x * (s - q) as f32;
+        denominator *= (r + q + 1) as f32 * (q + 1) as f32;
     }
     sum
 }
 
 fn radial_nc(n: u32, l: u32) -> f32 {
-    ((2.0 / (n as f32 * A)).powi(3) * factorialu(n - l - 1)
+    ((2.0 / n as f32).powi(3) * factorialu(n - l - 1)
         / (2.0 * n as f32 * factorialu(n + l).powi(3)))
     .sqrt()
 }
@@ -34,15 +35,15 @@ fn angular_nc(m: i32, l: u32) -> f32 {
 }
 
 fn radial_wavefunction(n: u32, l: u32, r: f32) -> f32 {
-    let p = (2.0 * r) / (n as f32 * A);
-    let asymptotic_forms = (-r / (n as f32 * A)).exp() * p.powi(l as i32);
+    let p = 2.0 * r / n as f32;
+    let asymptotic_forms = (-r / n as f32).exp() * p.powi(l as i32);
     let lp = laguerre_polynomial(2 * l + 1, n - l - 1, p);
     asymptotic_forms * lp
 }
 
 fn hydrogen_wavefunction(n: u32, l: u32, m: i32, r: f32, theta: f32, phi: f32) -> Complex {
     let radial = radial_wavefunction(n, l, r);
-    let angular = spherical_harmonic2(m, l, theta, phi, Complex::ONE);
+    let angular = spherical_harmonic2(m, l, theta, phi);
     radial * angular
 }
 
@@ -117,7 +118,7 @@ mod test {
                         let v = nc * hydrogen_wavefunction(n, l, m, r, theta, phi);
                         v.norm_squared()
                     };
-                    let d = A * 35.0;
+                    let d = 35.0;
                     let total_probability =
                         integrate_3d(&f, Vec3::splat(-d), Vec3::splat(d), [25; 3]);
                     // Accuracy increases with more samples
