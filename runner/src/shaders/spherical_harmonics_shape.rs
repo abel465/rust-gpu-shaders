@@ -18,8 +18,8 @@ use std::{
 };
 use strum::IntoEnumIterator;
 
-const I_MAX: usize = 200;
-const J_MAX: usize = 200;
+const I_MAX: usize = 100;
+const J_MAX: usize = 400;
 
 pub struct Controller {
     size: PhysicalSize<u32>,
