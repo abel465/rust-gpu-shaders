@@ -88,7 +88,7 @@ pub fn main_fs(
         z.dot(vec2(-FRAC_1_SQRT_2, FRAC_1_SQRT_2)),
         z.dot(Vec2::splat(-FRAC_1_SQRT_2)),
     )
-    .powf(1.0 / constants.root as f32);
+    .powf(1.0 / constants.brightness as f32);
 
     *output = col.extend(1.0);
 }

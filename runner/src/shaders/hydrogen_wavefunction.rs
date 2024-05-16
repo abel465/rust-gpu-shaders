@@ -1,14 +1,14 @@
 use crate::window::UserEvent;
 use bytemuck::Zeroable;
 use egui::Context;
-use glam::{vec2, Vec2};
-use shared::push_constants::hydrogen_wavefunction::ShaderConstants;
-use std::time::Instant;
 use egui_winit::winit::{
     dpi::PhysicalSize,
     event::{ElementState, MouseButton, MouseScrollDelta},
     event_loop::EventLoopProxy,
 };
+use glam::{vec2, Vec2};
+use shared::push_constants::hydrogen_wavefunction::ShaderConstants;
+use std::time::Instant;
 
 pub struct Controller {
     size: PhysicalSize<u32>,
@@ -21,7 +21,7 @@ pub struct Controller {
     n: i32,
     l: i32,
     m: i32,
-    root: i32,
+    brightness: f32,
 }
 
 impl crate::controller::Controller for Controller {
@@ -34,10 +34,10 @@ impl crate::controller::Controller for Controller {
             camera_distance: 30.0,
             mouse_button_pressed: false,
             shader_constants: ShaderConstants::zeroed(),
-            n: 1,
-            l: 0,
-            m: 0,
-            root: 2,
+            n: 4,
+            l: 1,
+            m: 1,
+            brightness: 2.0,
         }
     }
 
@@ -83,6 +83,8 @@ impl crate::controller::Controller for Controller {
     }
 
     fn update(&mut self) {
+        self.l = self.l.clamp(0, self.n - 1);
+        self.m = self.m.clamp(-self.l, self.l);
         self.shader_constants = ShaderConstants {
             size: self.size.into(),
             time: self.start.elapsed().as_secs_f32(),
@@ -93,7 +95,7 @@ impl crate::controller::Controller for Controller {
             n: self.n as u32,
             l: self.l as u32,
             m: self.m,
-            root: self.root,
+            brightness: self.brightness,
         };
     }
 
@@ -106,37 +108,9 @@ impl crate::controller::Controller for Controller {
     }
 
     fn ui(&mut self, _ctx: &Context, ui: &mut egui::Ui, _: &EventLoopProxy<UserEvent>) {
-        ui.horizontal(|ui| {
-            ui.label("root:");
-            ui.add(
-                egui::DragValue::new(&mut self.root)
-                    .clamp_range(1..=6)
-                    .speed(0.1),
-            );
-        });
-        ui.horizontal(|ui| {
-            ui.label("n:");
-            ui.add(
-                egui::DragValue::new(&mut self.n)
-                    .clamp_range(1..=5)
-                    .speed(0.1),
-            );
-        });
-        ui.horizontal(|ui| {
-            ui.label("l:");
-            ui.add(
-                egui::DragValue::new(&mut self.l)
-                    .clamp_range(0..=self.n - 1)
-                    .speed(0.1),
-            );
-        });
-        ui.horizontal(|ui| {
-            ui.label("m:");
-            ui.add(
-                egui::DragValue::new(&mut self.m)
-                    .clamp_range(-self.l..=self.l)
-                    .speed(0.1),
-            );
-        });
+        ui.add(egui::Slider::new(&mut self.brightness, 0.0..=5.0).text("Brightness"));
+        ui.add(egui::Slider::new(&mut self.n, 1..=5).text("n"));
+        ui.add(egui::Slider::new(&mut self.l, 0..=self.n - 1).text("l"));
+        ui.add(egui::Slider::new(&mut self.m, -self.l..=self.l).text("m"));
     }
 }
