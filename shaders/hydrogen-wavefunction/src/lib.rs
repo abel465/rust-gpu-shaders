@@ -81,7 +81,7 @@ pub fn main_fs(
         ro,
         rd,
         constants.camera_distance,
-    );
+    ) * Complex::from_angle(constants.time);
 
     let col = vec3(
         z.dot(Vec2::X),

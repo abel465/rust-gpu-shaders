@@ -13,6 +13,7 @@ use std::time::Instant;
 pub struct Controller {
     size: PhysicalSize<u32>,
     start: Instant,
+    paused: Instant,
     cursor: Vec2,
     camera: Vec2,
     camera_distance: f32,
@@ -22,6 +23,7 @@ pub struct Controller {
     l: i32,
     m: i32,
     brightness: f32,
+    time_dependent: bool,
 }
 
 impl crate::controller::Controller for Controller {
@@ -29,6 +31,7 @@ impl crate::controller::Controller for Controller {
         Self {
             size,
             start: Instant::now(),
+            paused: Instant::now(),
             cursor: Vec2::ZERO,
             camera: Vec2::ZERO,
             camera_distance: 30.0,
@@ -38,6 +41,7 @@ impl crate::controller::Controller for Controller {
             l: 1,
             m: 1,
             brightness: 2.0,
+            time_dependent: false,
         }
     }
 
@@ -87,7 +91,12 @@ impl crate::controller::Controller for Controller {
         self.m = self.m.clamp(-self.l, self.l);
         self.shader_constants = ShaderConstants {
             size: self.size.into(),
-            time: self.start.elapsed().as_secs_f32(),
+            time: (if self.time_dependent {
+                self.start.elapsed()
+            } else {
+                self.paused - self.start
+            })
+            .as_secs_f32(),
             cursor: self.cursor.into(),
             camera_distance: self.camera_distance,
             translate: (self.camera / self.size.height as f32).into(),
@@ -108,6 +117,16 @@ impl crate::controller::Controller for Controller {
     }
 
     fn ui(&mut self, _ctx: &Context, ui: &mut egui::Ui, _: &EventLoopProxy<UserEvent>) {
+        if ui
+            .checkbox(&mut self.time_dependent, "Evolve over time")
+            .clicked()
+        {
+            if self.time_dependent {
+                self.start = self.start + self.paused.elapsed();
+            } else {
+                self.paused = Instant::now();
+            }
+        }
         ui.add(egui::Slider::new(&mut self.brightness, 0.0..=5.0).text("Brightness"));
         ui.add(egui::Slider::new(&mut self.n, 1..=5).text("n"));
         ui.add(egui::Slider::new(&mut self.l, 0..=self.n - 1).text("l"));
