@@ -76,10 +76,9 @@ pub fn main_fs(
         z.dot(Vec2::X),
         z.dot(vec2(-FRAC_1_SQRT_2, FRAC_1_SQRT_2)),
         z.dot(Vec2::splat(-FRAC_1_SQRT_2)),
-    )
-    .powf(1.0 / constants.brightness as f32);
+    );
 
-    *output = col.extend(1.0);
+    *output = (col.powf(2.2) * 100.0).extend(1.0);
 }
 
 #[spirv(vertex)]

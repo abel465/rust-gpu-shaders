@@ -22,7 +22,6 @@ pub struct Controller {
     n: i32,
     l: i32,
     m: i32,
-    brightness: f32,
     time_dependent: bool,
 }
 
@@ -40,7 +39,6 @@ impl crate::controller::Controller for Controller {
             n: 4,
             l: 1,
             m: 1,
-            brightness: 2.0,
             time_dependent: false,
         }
     }
@@ -87,9 +85,8 @@ impl crate::controller::Controller for Controller {
     }
 
     fn update(&mut self) {
-        let n = self.n as u32;
-        let l = self.l.clamp(0, n as i32 - 1) as u32;
-        let m = self.m.clamp(-(l as i32), l as i32);
+        self.l = self.l.clamp(0, self.n - 1);
+        self.m = self.m.clamp(-self.l, self.l);
         self.shader_constants = ShaderConstants {
             size: self.size.into(),
             time: (if self.time_dependent {
@@ -102,11 +99,11 @@ impl crate::controller::Controller for Controller {
             camera_distance: self.camera_distance,
             translate: (self.camera / self.size.height as f32).into(),
             mouse_button_pressed: !(1 << self.mouse_button_pressed as u32),
-            n,
-            l,
-            m,
-            brightness: self.brightness,
-            normalization_constant: radial_nc(n, l) * angular_nc(m, l),
+            n: self.n as u32,
+            l: self.l as u32,
+            m: self.m,
+            normalization_constant: radial_nc(self.n as u32, self.l as u32)
+                * angular_nc(self.m, self.l as u32),
         };
     }
 
@@ -129,7 +126,6 @@ impl crate::controller::Controller for Controller {
                 self.paused = Instant::now();
             }
         }
-        ui.add(egui::Slider::new(&mut self.brightness, 0.0..=5.0).text("Brightness"));
         ui.add(egui::Slider::new(&mut self.n, 1..=5).text("n"));
         ui.add(egui::Slider::new(&mut self.l, 0..=self.n - 1).text("l"));
         ui.add(egui::Slider::new(&mut self.m, -self.l..=self.l).text("m"));
