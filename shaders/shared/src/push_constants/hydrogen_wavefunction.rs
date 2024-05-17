@@ -14,6 +14,5 @@ pub struct ShaderConstants {
     pub n: u32,
     pub l: u32,
     pub m: i32,
-    pub brightness: f32,
     pub normalization_constant: f32,
 }
