@@ -48,7 +48,7 @@ pub fn main_fs(
         }
     };
 
-    *output = col.extend(1.0);
+    *output = col.powf(2.2).extend(1.0);
 }
 
 #[spirv(vertex)]
