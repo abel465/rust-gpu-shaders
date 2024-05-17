@@ -24,16 +24,6 @@ fn laguerre_polynomial(r: u32, s: u32, x: f32) -> f32 {
     sum
 }
 
-fn radial_nc(n: u32, l: u32) -> f32 {
-    ((2.0 / n as f32).powi(3) * factorialu(n - l - 1)
-        / (2.0 * n as f32 * factorialu(n + l).powi(3)))
-    .sqrt()
-}
-
-fn angular_nc(m: i32, l: u32) -> f32 {
-    spherical_harmonics::normalization_constant(m, l)
-}
-
 fn radial_wavefunction(n: u32, l: u32, r: f32) -> f32 {
     let p = 2.0 * r / n as f32;
     let asymptotic_forms = (-r / n as f32).exp() * p.powi(l as i32);
@@ -58,7 +48,7 @@ pub fn integrate_ray(n: u32, l: u32, m: i32, ro: Vec3, rd: Vec3, camera_distance
         integral += hydrogen_wavefunction(n, l, m, r, theta, phi);
         pos += rd * delta_z;
     }
-    radial_nc(n, l) * angular_nc(m, l) * integral * delta_z
+    integral * delta_z
 }
 
 #[spirv(fragment)]
@@ -81,7 +71,8 @@ pub fn main_fs(
         ro,
         rd,
         constants.camera_distance,
-    ) * Complex::from_angle(constants.time);
+    ) * constants.normalization_constant
+        * Complex::from_angle(constants.time);
 
     let col = vec3(
         z.dot(Vec2::X),
@@ -106,6 +97,16 @@ mod test {
     use super::*;
     use numeric_integration::integrate_3d;
     use shared::assert_similar;
+
+    fn radial_nc(n: u32, l: u32) -> f32 {
+        ((2.0 / n as f32).powi(3) * factorialu(n - l - 1)
+            / (2.0 * n as f32 * factorialu(n + l).powi(3)))
+        .sqrt()
+    }
+
+    fn angular_nc(m: i32, l: u32) -> f32 {
+        spherical_harmonics::normalization_constant(m, l)
+    }
 
     #[test]
     fn test_hydrogen_wavefunction() {

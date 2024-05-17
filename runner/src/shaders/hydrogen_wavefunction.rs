@@ -7,7 +7,7 @@ use egui_winit::winit::{
     event_loop::EventLoopProxy,
 };
 use glam::{vec2, Vec2};
-use shared::push_constants::hydrogen_wavefunction::ShaderConstants;
+use shared::{push_constants::hydrogen_wavefunction::ShaderConstants, spherical_harmonics};
 use std::time::Instant;
 
 pub struct Controller {
@@ -87,8 +87,9 @@ impl crate::controller::Controller for Controller {
     }
 
     fn update(&mut self) {
-        self.l = self.l.clamp(0, self.n - 1);
-        self.m = self.m.clamp(-self.l, self.l);
+        let n = self.n as u32;
+        let l = self.l.clamp(0, self.n - 1) as u32;
+        let m = self.m.clamp(-self.l, self.l);
         self.shader_constants = ShaderConstants {
             size: self.size.into(),
             time: (if self.time_dependent {
@@ -101,10 +102,11 @@ impl crate::controller::Controller for Controller {
             camera_distance: self.camera_distance,
             translate: (self.camera / self.size.height as f32).into(),
             mouse_button_pressed: !(1 << self.mouse_button_pressed as u32),
-            n: self.n as u32,
-            l: self.l as u32,
-            m: self.m,
+            n,
+            l,
+            m,
             brightness: self.brightness,
+            normalization_constant: radial_nc(n, l) * angular_nc(m, l),
         };
     }
 
@@ -122,7 +124,7 @@ impl crate::controller::Controller for Controller {
             .clicked()
         {
             if self.time_dependent {
-                self.start = self.start + self.paused.elapsed();
+                self.start += self.paused.elapsed();
             } else {
                 self.paused = Instant::now();
             }
@@ -132,4 +134,15 @@ impl crate::controller::Controller for Controller {
         ui.add(egui::Slider::new(&mut self.l, 0..=self.n - 1).text("l"));
         ui.add(egui::Slider::new(&mut self.m, -self.l..=self.l).text("m"));
     }
+}
+
+fn radial_nc(n: u32, l: u32) -> f32 {
+    use spherical_harmonics::factorialu;
+    ((2.0 / n as f32).powi(3) * factorialu(n - l - 1)
+        / (2.0 * n as f32 * factorialu(n + l).powi(3)))
+    .sqrt()
+}
+
+fn angular_nc(m: i32, l: u32) -> f32 {
+    spherical_harmonics::normalization_constant(m, l)
 }
