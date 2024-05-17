@@ -88,8 +88,8 @@ impl crate::controller::Controller for Controller {
 
     fn update(&mut self) {
         let n = self.n as u32;
-        let l = self.l.clamp(0, self.n - 1) as u32;
-        let m = self.m.clamp(-self.l, self.l);
+        let l = self.l.clamp(0, n as i32 - 1) as u32;
+        let m = self.m.clamp(-(l as i32), l as i32);
         self.shader_constants = ShaderConstants {
             size: self.size.into(),
             time: (if self.time_dependent {

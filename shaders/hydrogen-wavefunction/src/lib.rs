@@ -14,12 +14,10 @@ use spirv_std::spirv;
 
 fn laguerre_polynomial(r: u32, s: u32, x: f32) -> f32 {
     let mut sum = 0.0;
-    let mut numerator = factorialu(s + r).powi(2);
-    let mut denominator = factorialu(s) * factorialu(r);
+    let mut product = factorialu(s + r).powi(2) / (factorialu(s) * factorialu(r));
     for q in 0..=s {
-        sum += numerator / denominator;
-        numerator *= -x * (s - q) as f32;
-        denominator *= (r + q + 1) as f32 * (q + 1) as f32;
+        sum += product;
+        product *= -x * (s - q) as f32 / ((r + q + 1) as f32 * (q + 1) as f32);
     }
     sum
 }
