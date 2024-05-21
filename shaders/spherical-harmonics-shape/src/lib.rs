@@ -6,12 +6,7 @@ use spirv_std::glam::{Mat4, Vec3, Vec4};
 use spirv_std::spirv;
 
 #[spirv(fragment)]
-pub fn main_fs(
-    col: Vec3,
-    #[spirv(frag_coord)] _frag_coord: Vec4,
-    #[spirv(push_constant)] _constants: &ShaderConstants,
-    output: &mut Vec4,
-) {
+pub fn main_fs(col: Vec3, output: &mut Vec4) {
     *output = col.powf(2.2).extend(1.0);
 }
 
