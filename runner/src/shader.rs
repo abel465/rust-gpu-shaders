@@ -65,6 +65,7 @@ pub fn maybe_watch(
             RustGPUShader::SphericalHarmonicsShape => "spherical-harmonics-shape",
             RustGPUShader::FunRepDemo => "fun-rep-demo",
             RustGPUShader::SdfBuilder => "sdf-builder",
+            RustGPUShader::ProceduralGeneration => "procedural-generation",
         };
         let manifest_dir = option_env!("SHADERS_DIR").unwrap_or(env!("CARGO_MANIFEST_DIR"));
         let crate_path = [manifest_dir, "..", "shaders", crate_name]

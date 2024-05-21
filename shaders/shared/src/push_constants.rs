@@ -1,12 +1,10 @@
 use bytemuck::{Pod, Zeroable};
 use spirv_std::glam;
-#[cfg(not(target_arch = "spirv"))]
-use winit::dpi::PhysicalSize;
-
 pub mod fun_rep_demo;
 pub mod hydrogen_wavefunction;
 pub mod koch_snowflake;
 pub mod mandelbrot;
+pub mod procedural_generation;
 pub mod ray_marching;
 pub mod ray_marching_2d;
 pub mod sdf_builder;
@@ -30,6 +28,7 @@ pub fn largest_size() -> usize {
         .max(size_of::<spherical_harmonics_shape::ShaderConstants>())
         .max(size_of::<fun_rep_demo::ShaderConstants>())
         .max(size_of::<sdf_builder::ShaderConstants>())
+        .max(size_of::<procedural_generation::ShaderConstants>())
 }
 
 #[derive(Copy, Clone, Pod, Zeroable)]
@@ -46,8 +45,8 @@ impl Size {
 }
 
 #[cfg(not(target_arch = "spirv"))]
-impl From<PhysicalSize<u32>> for Size {
-    fn from(PhysicalSize { width, height }: PhysicalSize<u32>) -> Self {
+impl From<winit::dpi::PhysicalSize<u32>> for Size {
+    fn from(winit::dpi::PhysicalSize { width, height }: winit::dpi::PhysicalSize<u32>) -> Self {
         Self { width, height }
     }
 }

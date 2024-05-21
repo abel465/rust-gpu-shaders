@@ -10,3 +10,4 @@ pub mod spherical_harmonics;
 pub mod spherical_harmonics_shape;
 pub mod fun_rep_demo;
 pub mod sdf_builder;
+pub mod procedural_generation;

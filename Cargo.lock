@@ -1817,6 +1817,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "procudural-generation"
+version = "0.0.0"
+dependencies = [
+ "shared",
+ "spirv-std",
+]
+
+[[package]]
 name = "profiling"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"

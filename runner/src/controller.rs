@@ -74,5 +74,8 @@ pub fn new_controller(shader: RustGPUShader, size: PhysicalSize<u32>) -> Box<dyn
         }
         RustGPUShader::FunRepDemo => Box::new(fun_rep_demo::Controller::new(size)),
         RustGPUShader::SdfBuilder => Box::new(sdf_builder::Controller::new(size)),
+        RustGPUShader::ProceduralGeneration => {
+            Box::new(procedural_generation::Controller::new(size))
+        }
     }
 }

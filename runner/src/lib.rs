@@ -30,6 +30,7 @@ pub enum RustGPUShader {
     SphericalHarmonicsShape,
     FunRepDemo,
     SdfBuilder,
+    ProceduralGeneration,
 }
 
 #[derive(StructOpt, Clone, Copy)]
