@@ -36,7 +36,7 @@ pub enum RustGPUShader {
 #[derive(StructOpt, Clone, Copy)]
 #[structopt(name = "example-runner-wgpu")]
 pub struct Options {
-    #[structopt(short, long, default_value = "Mandelbrot")]
+    #[structopt(short, long, default_value = "SdfBuilder")]
     shader: RustGPUShader,
 
     // Default to true after the following is fixed
