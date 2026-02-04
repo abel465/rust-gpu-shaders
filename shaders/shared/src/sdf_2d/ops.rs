@@ -1,6 +1,3 @@
-#[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
-use spirv_std::num_traits::Float;
-
 pub mod repeat;
 pub mod fast_repeat;
 

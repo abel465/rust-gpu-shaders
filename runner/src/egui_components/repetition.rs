@@ -2,8 +2,7 @@ use egui::{ComboBox, DragValue, Ui};
 use glam::{UVec2, Vec2};
 use strum::IntoEnumIterator;
 
-#[cfg_attr(not(target_arch = "spirv"), derive(strum::EnumIter, strum::Display))]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, strum::EnumIter, strum::Display)]
 #[repr(u32)]
 pub enum RepetitionValue {
     None,

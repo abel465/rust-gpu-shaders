@@ -1,8 +1,7 @@
 use crate::sdf::Sdf;
 use glam::Vec2;
 
-#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Disk {
     pub radius: f32,
 }

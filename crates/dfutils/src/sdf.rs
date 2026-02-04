@@ -1,6 +1,4 @@
 use glam::{vec2, Vec2};
-#[cfg(not(feature = "std"))]
-use num_traits::Float;
 
 pub trait SignedDistance
 where

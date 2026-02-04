@@ -48,7 +48,7 @@ pub trait Controller {
     fn has_ui(&self) -> bool {
         false
     }
-    fn buffers(&self) -> BufferData {
+    fn buffers(&self) -> BufferData<'_> {
         BufferData::default()
     }
     fn cursor_visible(&self) -> bool {

@@ -2,8 +2,7 @@ use crate::{primitives::*, sdf::Sdf};
 use glam::Vec2;
 
 #[cfg_attr(feature = "strum", derive(strum::EnumIter, strum::IntoStaticStr))]
-#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 #[enum_delegate::implement(Sdf)]
 pub enum Shape {
     Disk(Disk),

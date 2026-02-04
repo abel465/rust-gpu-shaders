@@ -1,6 +1,4 @@
 use spirv_std::glam::{vec2, Vec2, Vec3, Vec3Swizzles};
-#[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
-use spirv_std::num_traits::Float;
 
 pub fn torus_x(p: Vec3, r: Vec2) -> f32 {
     vec2(p.yz().length() - r.x, p.x).length() - r.y

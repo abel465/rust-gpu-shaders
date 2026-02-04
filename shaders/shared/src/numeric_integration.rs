@@ -1,6 +1,4 @@
 use spirv_std::glam::{vec2, vec3, Vec2, Vec3};
-#[cfg_attr(not(target_arch = "spirv"), allow(unused_imports))]
-use spirv_std::num_traits::Float;
 
 pub fn integrate(f: &dyn Fn(f32) -> f32, a: f32, b: f32, p: u32) -> f32 {
     if p == 0 || (a - b).abs() == 0.0 {

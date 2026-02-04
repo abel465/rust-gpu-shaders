@@ -23,17 +23,20 @@ default-members = ["runner"]
 [workspace.package]
 version = "0.1.0"
 authors = ["Abel <abel465@gmail.com>"]
-edition = "2021"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 
+[workspace.dependencies]
+bytemuck = { version = "1.25.0", default-features = false }
+glam = { version = "0.31.0", default-features = false }
+
 [workspace.dependencies.spirv-std]
-git = "https://github.com/EmbarkStudios/rust-gpu"
-rev = "54f6978c25b7e168ded04e720b996625b3654ebd"
+git = "https://github.com/Rust-GPU/rust-gpu"
+rev = "08f98a7335ae7e2ac4ec9423a9b1acf9270f2a65"
 
 [workspace.dependencies.spirv-builder]
-git = "https://github.com/EmbarkStudios/rust-gpu"
-rev = "54f6978c25b7e168ded04e720b996625b3654ebd"
-default-features = false
+git = "https://github.com/Rust-GPU/rust-gpu"
+rev = "08f98a7335ae7e2ac4ec9423a9b1acf9270f2a65"
 
 [profile.dev]
 package.spirv-tools-sys.opt-level = 1

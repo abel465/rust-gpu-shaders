@@ -1,6 +1,4 @@
 use glam::Vec2;
-#[cfg(not(feature = "std"))]
-use num_traits::Float;
 
 #[derive(Clone, Copy)]
 pub struct GridRef<'a, T> {

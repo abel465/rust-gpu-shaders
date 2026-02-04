@@ -1,4 +1,4 @@
-use super::{Size, Vec2};
+use super::Size;
 use bytemuck::{Pod, Zeroable};
 
 #[derive(Copy, Clone, Pod, Zeroable)]

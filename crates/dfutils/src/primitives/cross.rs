@@ -1,10 +1,7 @@
 use crate::sdf::Sdf;
 use glam::*;
-#[cfg(not(feature = "std"))]
-use num_traits::Float;
 
-#[cfg_attr(not(target_arch = "spirv"), derive(Debug))]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Cross {
     pub length: f32,
     pub thickness: f32,

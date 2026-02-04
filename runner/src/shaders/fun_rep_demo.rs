@@ -1,15 +1,15 @@
 use crate::controller::{BindGroupBufferType, BufferData, SSBO};
 use bytemuck::Zeroable;
+use egui_winit::winit::{
+    dpi::{PhysicalPosition, PhysicalSize},
+    event::{ElementState, MouseButton, MouseScrollDelta},
+};
 use glam::{vec2, Vec2};
 use shared::{
     interpreter::{OpCode0, OpCodeStruct},
     push_constants::fun_rep_demo::ShaderConstants,
 };
 use std::time::{Duration, Instant};
-use egui_winit::winit::{
-    dpi::{PhysicalPosition, PhysicalSize},
-    event::{ElementState, MouseButton, MouseScrollDelta},
-};
 
 pub struct Controller {
     size: PhysicalSize<u32>,
@@ -106,7 +106,7 @@ impl crate::controller::Controller for Controller {
         false
     }
 
-    fn buffers(&self) -> BufferData {
+    fn buffers(&self) -> BufferData<'_> {
         BufferData {
             bind_group_buffers: vec![BindGroupBufferType::SSBO(SSBO {
                 data: bytemuck::cast_slice(&self.buffer),

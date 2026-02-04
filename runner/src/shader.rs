@@ -47,11 +47,13 @@ pub fn maybe_watch(
         // rustc_codegen_spirv normally, so we *want* to build into a separate target directory, to
         // not have to rebuild half the crate graph every time we run. So, pretend we're running
         // under cargo by setting these environment variables.
-        std::env::set_var(
-            "OUT_DIR",
-            option_env!("SHADERS_TARGET_DIR").unwrap_or(env!("OUT_DIR")),
-        );
-        std::env::set_var("PROFILE", env!("PROFILE"));
+        unsafe {
+            std::env::set_var(
+                "OUT_DIR",
+                option_env!("SHADERS_TARGET_DIR").unwrap_or(env!("OUT_DIR")),
+            );
+            std::env::set_var("PROFILE", env!("PROFILE"));
+        }
         let crate_name = match options.shader {
             RustGPUShader::Mandelbrot => "mandelbrot",
             RustGPUShader::RayMarching => "ray-marching",
@@ -89,9 +91,22 @@ pub fn maybe_watch(
             // (see https://github.com/KhronosGroup/SPIRV-Tools/issues/4892).
             .multimodule(has_debug_printf);
         let initial_result = if let Some(mut f) = on_watch {
-            builder
-                .watch(move |compile_result| f(handle_compile_result(compile_result)))
-                .expect("Configuration is correct for watching")
+            let mut watcher = builder.watch().unwrap();
+            let compile_result = loop {
+                match watcher.recv() {
+                    Ok(result) => break result,
+                    Err(e) => eprintln!("Shader compiling failed: {e}",),
+                }
+            };
+            std::thread::spawn(move || {
+                loop {
+                    match watcher.recv() {
+                        Ok(compile_result) => f(handle_compile_result(compile_result)),
+                        Err(e) => eprintln!("Shader compiling failed: {e}"),
+                    }
+                }
+            });
+            compile_result
         } else {
             builder.build().unwrap()
         };

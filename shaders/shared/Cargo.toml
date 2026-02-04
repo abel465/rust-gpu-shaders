@@ -8,7 +8,7 @@ license.workspace = true
 
 [dependencies]
 spirv-std = { workspace = true }
-bytemuck = { version = "1.15.0", features = ["derive"] }
+bytemuck = { workspace = true, features = ["derive"] }
 dfutils = { path = "../../crates/dfutils", default-features = false, features = [
   "libm",
 ] }
@@ -17,3 +17,8 @@ dfutils = { path = "../../crates/dfutils", default-features = false, features = 
 strum = { version = "0.26.2", features = ["derive"] }
 winit = { version = "0.29.15", default-features = false }
 rayon = "1.10.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = [
+  'cfg(target_arch, values("spirv"))',
+] }

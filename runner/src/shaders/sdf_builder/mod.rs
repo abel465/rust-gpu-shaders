@@ -228,7 +228,7 @@ impl crate::controller::Controller for Controller {
         }
     }
 
-    fn buffers(&self) -> BufferData {
+    fn buffers(&self) -> BufferData<'_> {
         BufferData {
             bind_group_buffers: vec![BindGroupBufferType::SSBO(SSBO {
                 data: bytemuck::cast_slice(&self.grid.buffer[..]),
